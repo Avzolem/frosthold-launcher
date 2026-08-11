@@ -12,6 +12,12 @@ jobs:
   build:
     runs-on: windows-latest
 
+    # Los workflows de un repositorio nuevo solo pueden leer. Sin esto, la
+    # compilación termina bien y el último paso muere con
+    # "Resource not accessible by integration".
+    permissions:
+      contents: write
+
     steps:
       - uses: actions/checkout@v4
 
