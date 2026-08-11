@@ -49,7 +49,12 @@ function createWindow() {
   });
 
   win.loadFile(join(__dirname, '..', '..', 'src', 'renderer', 'index.html'));
-  win.once('ready-to-show', () => win?.show());
+  win.once('ready-to-show', () => {
+    win?.show();
+    // Modo de desarrollo: abre, retrata y se va. Sirve para revisar la
+    // interfaz sin tener que instalar el launcher en una máquina Windows.
+    if (process.argv.includes('--screenshot')) void captureAndQuit();
+  });
   win.on('closed', () => {
     win = null;
   });
@@ -60,6 +65,17 @@ function createWindow() {
     void shell.openExternal(url);
     return { action: 'deny' };
   });
+}
+
+async function captureAndQuit() {
+  const out = process.env.SHOT_PATH ?? join(app.getPath('temp'), 'frosthold-launcher.png');
+  // Un respiro para que lleguen el estado del reino y la comprobación inicial.
+  await new Promise((r) => setTimeout(r, 3500));
+  const image = await win!.capturePage();
+  const { writeFile } = await import('node:fs/promises');
+  await writeFile(out, image.toPNG());
+  console.log(`captura: ${out}`);
+  app.exit(0);
 }
 
 function wireEvents() {

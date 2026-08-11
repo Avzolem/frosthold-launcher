@@ -20,6 +20,12 @@
   padding: 0;
 }
 
+/* Cualquier `display` de más abajo pisaría el atributo `hidden`, y los
+   elementos que ocultamos desde JavaScript seguirían viéndose. */
+[hidden] {
+  display: none !important;
+}
+
 body {
   height: 100vh;
   display: flex;
