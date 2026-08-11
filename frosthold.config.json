@@ -4,8 +4,8 @@
   "build": 12340,
 
   "realmlistHost": "logon.avsolem.com",
-  "statusApi": "https://avsolem.com/api/wow/status",
-  "manifestUrl": "https://avsolem.com/wow/manifest.json",
+  "statusApi": "https://www.avsolem.com/api/wow/status",
+  "manifestUrl": "https://www.avsolem.com/wow/manifest.json",
 
   "executableName": "Frosthold.exe",
   "clientLocale": "esMX",
