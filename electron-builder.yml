@@ -6,6 +6,13 @@ directories:
   output: release
   buildResources: build
 
+# Comprimir al máximo cuesta un par de minutos de compilación una sola vez y
+# se los ahorra a cada persona que descargue.
+compression: maximum
+asar: true
+npmRebuild: false
+afterPack: build/after-pack.cjs
+
 # Solo lo que la app necesita en tiempo de ejecución. `src/renderer` va tal
 # cual porque el proceso principal lo carga con loadFile.
 files:

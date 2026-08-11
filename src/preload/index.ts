@@ -54,6 +54,9 @@ const api = {
       'download:error',
       'game:state',
       'realm:status',
+      'updater:available',
+      'updater:progress',
+      'updater:ready',
     ];
     if (!allowed.includes(channel)) return () => {};
     const handler = (_e: unknown, payload: unknown) => cb(payload);

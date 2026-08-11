@@ -1,0 +1,50 @@
+name: Instalador
+
+# Se dispara al empujar una etiqueta de versión (v0.1.0, v0.2.0…).
+# Construir en Windows de verdad evita las rarezas de compilar el instalador
+# desde Linux, y deja constancia de con qué se generó cada versión.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - run: yarn install --frozen-lockfile
+
+      - name: Generar el manifiesto del cliente
+        run: yarn manifest --check
+
+      - name: Compilar y empaquetar
+        run: yarn dist
+        env:
+          # Sin certificado todavía: que no intente firmar y falle.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Guardar el instalador
+        uses: actions/upload-artifact@v4
+        with:
+          name: frosthold-launcher-windows
+          path: |
+            release/*.exe
+            release/latest.yml
+          retention-days: 90
+
+      - name: Publicar la versión
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*.exe
+            release/latest.yml
+          generate_release_notes: true

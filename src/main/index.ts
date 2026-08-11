@@ -6,6 +6,7 @@ import { DownloadManager } from './download-manager';
 import { InstallManager } from './install-manager';
 import { ProcessManager } from './process-manager';
 import { StatusManager } from './status-manager';
+import { setupUpdater } from './updater';
 import type { Manifest, ManifestFile } from '../shared/types';
 
 const CONFIG = JSON.parse(
@@ -204,6 +205,7 @@ if (!app.requestSingleInstanceLock()) {
     wireEvents();
     registerIpc();
     status.start();
+    setupUpdater(send);
   });
 
   app.on('window-all-closed', () => {
