@@ -1,0 +1,344 @@
+:root {
+  --ink: #050b14;
+  --slab: #0b1420;
+  --slab-hi: #101c2b;
+  --line: #1c2a3c;
+  --white: #eef4f8;
+  --read: #b8c7d4;
+  --meta: #7b8b9c;
+  --blue: #3b82f6;
+  --ice: #7dd3fc;
+  --gold: #fbbf24;
+  --up: #4ade80;
+  --down: #f87171;
+  --idle: #8a9497;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--ink);
+  color: var(--read);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ── Barra de título propia (la ventana no tiene marco) ───────────────────── */
+
+.titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 38px;
+  padding: 0 0 0 16px;
+  background: var(--slab);
+  border-bottom: 1px solid var(--line);
+  -webkit-app-region: drag;
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.mark {
+  color: var(--ice);
+  font-size: 14px;
+}
+
+.name {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 16px;
+  letter-spacing: 0.08em;
+  color: var(--white);
+}
+
+.patch {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--meta);
+}
+
+.window-buttons {
+  display: flex;
+  -webkit-app-region: no-drag;
+}
+
+.window-buttons button {
+  width: 44px;
+  height: 38px;
+  border: 0;
+  background: transparent;
+  color: var(--meta);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.window-buttons button:hover {
+  background: var(--slab-hi);
+  color: var(--white);
+}
+
+#btn-close:hover {
+  background: #7f1d1d;
+  color: #fff;
+}
+
+/* ── Cuerpo ───────────────────────────────────────────────────────────────── */
+
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px 26px;
+  /* Cielo nocturno sin una sola imagen: dos halos fríos sobre el fondo. */
+  background:
+    radial-gradient(120% 70% at 15% 0%, rgba(59, 130, 246, 0.16), transparent 60%),
+    radial-gradient(90% 60% at 90% 10%, rgba(125, 211, 252, 0.1), transparent 55%),
+    var(--ink);
+}
+
+.stage {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.realm-state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  color: var(--white);
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--idle);
+  box-shadow: 0 0 0 4px rgba(138, 148, 151, 0.14);
+}
+
+.dot[data-state='up'] {
+  background: var(--up);
+  box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.16);
+}
+
+.dot[data-state='down'] {
+  background: var(--down);
+  box-shadow: 0 0 0 4px rgba(248, 113, 113, 0.16);
+}
+
+.metrics {
+  display: flex;
+  gap: 26px;
+}
+
+.metrics div {
+  text-align: right;
+}
+
+.metrics dt {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--meta);
+  margin-bottom: 3px;
+}
+
+.metrics dd {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Panel ────────────────────────────────────────────────────────────────── */
+
+.panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  background: rgba(11, 20, 32, 0.82);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.field {
+  flex: 1;
+  min-width: 0;
+}
+
+.field label {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--meta);
+  margin-bottom: 6px;
+}
+
+.path {
+  display: block;
+  padding: 9px 12px;
+  background: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 12px;
+  color: var(--read);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: text;
+}
+
+.note {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--meta);
+  min-height: 19px;
+}
+
+.note.bad {
+  color: var(--down);
+}
+
+.note.good {
+  color: var(--up);
+}
+
+/* ── Progreso ─────────────────────────────────────────────────────────────── */
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.bar {
+  height: 7px;
+  background: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.bar span {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--blue), var(--ice));
+  transition: width 0.25s linear;
+}
+
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--meta);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Acciones ─────────────────────────────────────────────────────────────── */
+
+.actions {
+  margin-top: auto;
+  display: flex;
+  gap: 10px;
+}
+
+button.primary,
+button.ghost {
+  padding: 11px 20px;
+  border-radius: 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+button.primary {
+  flex: 1;
+  border: 0;
+  background: var(--blue);
+  color: #fff;
+}
+
+button.primary:hover:not(:disabled) {
+  background: #2f6fd8;
+}
+
+button.primary:disabled {
+  background: var(--slab-hi);
+  color: var(--meta);
+  cursor: default;
+}
+
+button.ghost {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--read);
+}
+
+button.ghost:hover {
+  border-color: var(--ice);
+  color: var(--white);
+}
+
+button:focus-visible {
+  outline: 2px solid var(--ice);
+  outline-offset: 2px;
+}
+
+.error {
+  font-size: 12.5px;
+  color: var(--down);
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: 6px;
+  padding: 9px 12px;
+}
+
+/* ── Pie ──────────────────────────────────────────────────────────────────── */
+
+.realmlist {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--meta);
+}
+
+.realmlist code {
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ice);
+  user-select: text;
+}

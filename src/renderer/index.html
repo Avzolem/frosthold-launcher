@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:;"
+    />
+    <title>Frosthold</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="titlebar">
+      <div class="brand">
+        <span class="mark" aria-hidden="true">❉</span>
+        <span class="name" id="realm-name">Frosthold</span>
+        <span class="patch" id="realm-patch">3.3.5a</span>
+      </div>
+      <div class="window-buttons">
+        <button id="btn-min" title="Minimizar" aria-label="Minimizar">—</button>
+        <button id="btn-close" title="Cerrar" aria-label="Cerrar">✕</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="stage">
+        <div class="realm-state">
+          <span class="dot" id="state-dot" data-state="unknown"></span>
+          <span id="state-label">Consultando el reino…</span>
+        </div>
+
+        <dl class="metrics">
+          <div><dt>Conectados</dt><dd id="m-players">—</dd></div>
+          <div><dt>Cuentas</dt><dd id="m-accounts">—</dd></div>
+          <div><dt>En pie</dt><dd id="m-uptime">—</dd></div>
+        </dl>
+      </section>
+
+      <section class="panel">
+        <div class="row">
+          <div class="field">
+            <label for="install-path">Carpeta del juego</label>
+            <output id="install-path" class="path">Sin elegir</output>
+          </div>
+          <button id="btn-choose" class="ghost">Elegir…</button>
+        </div>
+
+        <p id="client-note" class="note"></p>
+
+        <div class="progress" id="progress" hidden>
+          <div class="bar"><span id="bar-fill"></span></div>
+          <div class="progress-meta">
+            <span id="progress-text">—</span>
+            <span id="progress-speed"></span>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="btn-primary" class="primary" disabled>Elige la carpeta del juego</button>
+          <button id="btn-stop" class="ghost" hidden>Detener</button>
+        </div>
+
+        <p id="error" class="error" hidden></p>
+      </section>
+
+      <footer class="realmlist">
+        <span>realmlist</span>
+        <code id="realmlist-host">—</code>
+      </footer>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

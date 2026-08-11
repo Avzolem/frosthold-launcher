@@ -1,0 +1,38 @@
+appId: com.avsolem.frosthold.launcher
+productName: Frosthold
+copyright: © 2026 Frosthold
+
+directories:
+  output: release
+  buildResources: build
+
+# Solo lo que la app necesita en tiempo de ejecución. `src/renderer` va tal
+# cual porque el proceso principal lo carga con loadFile.
+files:
+  - dist/**/*
+  - src/renderer/**/*
+  - frosthold.config.json
+  - package.json
+  - '!**/*.map'
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  artifactName: ${productName}-Launcher-Setup-${version}.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Frosthold
+  # El instalador solo pone el launcher. El cliente del juego lo baja la app
+  # después, a la carpeta que elija el jugador.
+  deleteAppDataOnUninstall: false
+
+publish:
+  provider: generic
+  url: https://avsolem.com/wow/launcher/updates
+  channel: latest
