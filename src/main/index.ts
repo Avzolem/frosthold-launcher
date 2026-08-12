@@ -128,6 +128,34 @@ function registerIpc() {
 
   ipcMain.handle('install:openDir', async (_e, dir: string) => shell.openPath(dir));
 
+  ipcMain.handle('install:resetGraphics', async (_e, dir: string) => {
+    // Con el juego abierto no sirve de nada: el cliente reescribe Config.wtf
+    // entero al cerrarse y se lleva por delante lo que acabamos de poner. Es
+    // exactamente el motivo por el que a la gente "no le funciona" el arreglo
+    // manual, así que aquí se corta antes de dar una falsa sensación de éxito.
+    if (games.getState() === 'running') {
+      throw new Error('Cierra el juego antes de restablecer los gráficos.');
+    }
+
+    const { response } = await dialog.showMessageBox(win!, {
+      type: 'question',
+      buttons: ['Restablecer', 'Cancelar'],
+      defaultId: 0,
+      cancelId: 1,
+      title: 'Restablecer gráficos',
+      message: '¿Devolver el juego a una configuración de vídeo segura?',
+      detail:
+        'Quedará en ventana de 1280x720. Es lo que arregla la pantalla negra ' +
+        'después de cambiar la resolución.\n\n' +
+        'Tus teclas, tu sonido y tu cuenta recordada no se tocan, y se guarda ' +
+        'una copia de la carpeta WTF por si acaso. Tu personaje vive en el ' +
+        'reino: nada de esto lo afecta.',
+    });
+    if (response !== 0) return { cancelled: true };
+
+    return { cancelled: false, ...(await installs.resetGraphics(dir)) };
+  });
+
   ipcMain.handle('download:manifest', async () => {
     manifest = await downloads.fetchManifest(CONFIG.manifestUrl);
     return manifest;

@@ -19,6 +19,7 @@ const api = {
     applyRealmlist: (dir: string) => ipcRenderer.invoke('install:applyRealmlist', dir),
     readRealmlist: (dir: string) => ipcRenderer.invoke('install:readRealmlist', dir),
     openDir: (dir: string) => ipcRenderer.invoke('install:openDir', dir),
+    resetGraphics: (dir: string) => ipcRenderer.invoke('install:resetGraphics', dir),
   },
 
   download: {

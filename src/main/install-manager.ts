@@ -6,6 +6,20 @@ import { join } from 'node:path';
 const LOCALES = ['esMX', 'esES', 'enUS', 'enGB', 'ptBR', 'frFR', 'deDE', 'ruRU'];
 const MAX_BACKUPS = 5;
 
+/**
+ * Ventana de 1280x720 a 60 Hz por D3D9. No es una configuración bonita: es la
+ * que arranca en cualquier equipo con Windows que pueda mover el juego. Desde
+ * dentro el jugador ya sube lo que quiera.
+ */
+const SAFE_GRAPHICS = [
+  'SET gxWindow "1"',
+  'SET gxMaximize "0"',
+  'SET gxResolution "1280x720"',
+  'SET gxRefresh "60"',
+  'SET gxApi "D3D9"',
+  'SET gxMonitor "0"',
+] as const;
+
 export interface ClientCheck {
   ok: boolean;
   path: string;
@@ -13,6 +27,15 @@ export interface ClientCheck {
   locale: string | null;
   /** Qué falta, en lenguaje llano, para poder decírselo al jugador. */
   problems: string[];
+}
+
+export interface GraphicsReset {
+  configPath: string;
+  /** Dónde quedó la copia de WTF, o null si no había nada que copiar. */
+  backup: string | null;
+  /** Las líneas de vídeo que había antes, para poder enseñárselas al jugador. */
+  removed: string[];
+  applied: string[];
 }
 
 export class InstallManager {
@@ -130,6 +153,50 @@ export class InstallManager {
     } catch {
       /* si falla la rotación no vale la pena romper la instalación */
     }
+  }
+
+  /**
+   * Devuelve el cliente a una configuración gráfica que funciona en cualquier
+   * monitor: ventana de 1280x720.
+   *
+   * El tropiezo más común de 3.3.5a: el jugador elige en pantalla completa una
+   * resolución o una frecuencia que su monitor no admite, el cliente la guarda
+   * igual y a partir de ahí arranca en negro. No hay forma de arreglarlo desde
+   * dentro del juego, porque para entrar al menú de vídeo hay que poder ver.
+   *
+   * Solo se tocan las claves `SET gx*`, que son las de vídeo. Las teclas
+   * asignadas, el sonido y la cuenta recordada viven en las demás líneas y se
+   * conservan intactas.
+   */
+  async resetGraphics(dir: string): Promise<GraphicsReset> {
+    const backup = await this.backupSettings(dir);
+    const target = join(dir, 'WTF', 'Config.wtf');
+
+    let previas: string[] = [];
+    let resto: string[] = [];
+
+    try {
+      const { readFile } = await import('node:fs/promises');
+      const raw = await readFile(target, 'utf8');
+      for (const linea of raw.split(/\r?\n/)) {
+        if (/^\s*SET\s+gx\w+/i.test(linea)) previas.push(linea.trim());
+        else if (linea.trim()) resto.push(linea.trim());
+      }
+    } catch {
+      // Sin Config.wtf no hay nada que rescatar: se escribe uno nuevo y el
+      // cliente completa el resto de claves solo en el primer arranque.
+      previas = [];
+      resto = [];
+    }
+
+    // El cliente escribe este archivo con finales de línea de Windows y lo
+    // reescribe entero al cerrarse. Respetamos su formato para no dejarle
+    // un archivo que luego normalice de forma rara.
+    const cuerpo = [...resto, ...SAFE_GRAPHICS].join('\r\n') + '\r\n';
+    await mkdir(join(dir, 'WTF'), { recursive: true });
+    await writeFile(target, cuerpo, 'utf8');
+
+    return { configPath: target, backup, removed: previas, applied: [...SAFE_GRAPHICS] };
   }
 
   async freeSpace(dir: string): Promise<number> {

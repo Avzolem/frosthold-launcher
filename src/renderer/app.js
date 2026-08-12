@@ -20,6 +20,9 @@ const ui = {
   choose: $('btn-choose'),
   error: $('error'),
   realmlist: $('realmlist-host'),
+  tools: $('tools'),
+  openDir: $('btn-open-dir'),
+  resetGfx: $('btn-reset-gfx'),
 };
 
 /** Qué puede hacer el botón grande en cada momento. */
@@ -84,6 +87,7 @@ function paintStatus(s) {
 async function useDir(dir) {
   installDir = dir;
   ui.path.textContent = dir;
+  ui.tools.hidden = false;
   await frosthold.config.set({ installDir: dir });
 
   const check = await frosthold.install.inspect(dir);
@@ -172,6 +176,31 @@ ui.stop.addEventListener('click', () => {
 ui.choose.addEventListener('click', async () => {
   const dir = await frosthold.install.select();
   if (dir) await useDir(dir);
+});
+
+ui.openDir.addEventListener('click', () => {
+  if (installDir) frosthold.install.openDir(installDir);
+});
+
+ui.resetGfx.addEventListener('click', async () => {
+  if (!installDir) return;
+  showError('');
+  ui.resetGfx.disabled = true;
+  try {
+    const res = await frosthold.install.resetGraphics(installDir);
+    if (res.cancelled) return;
+
+    ui.note.className = 'note good';
+    // Se dice qué se cambió, no solo que se hizo algo: quien llega aquí ya
+    // tuvo un problema y necesita saber que esta vez sí pasó lo que esperaba.
+    ui.note.textContent = res.removed.length
+      ? `Gráficos restablecidos: ventana de 1280x720. Se reemplazaron ${res.removed.length} ajustes de vídeo.`
+      : 'Gráficos restablecidos: ventana de 1280x720.';
+  } catch (err) {
+    showError(err.message ?? String(err));
+  } finally {
+    ui.resetGfx.disabled = false;
+  }
 });
 
 $('btn-min').addEventListener('click', () => frosthold.window.minimize());
