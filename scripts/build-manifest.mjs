@@ -11,7 +11,7 @@
 
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'node:fs';
-import { join, relative, dirname } from 'node:path';
+import { join, relative, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -64,6 +64,59 @@ function collectExtras() {
   };
   walk(EXTRA_DIR);
   return files;
+}
+
+/**
+ * Coherencia entre el manifiesto, el idioma declarado y lo que el launcher
+ * escribe por su cuenta. Devuelve la lista de problemas; vacía si todo cuadra.
+ *
+ * El caso que de verdad importa es el `realmlist.wtf`. Si uno se colara en el
+ * manifiesto, el launcher lo bajaría, acto seguido lo reescribiría con nuestro
+ * host al arrancar el juego, y en la siguiente comprobación su hash ya no
+ * coincidiría: lo daría por dañado y lo volvería a bajar. Para siempre. Un
+ * bucle silencioso que nadie relacionaría con esta línea del manifiesto.
+ */
+export function revisarCoherencia(files, config) {
+  const problemas = [];
+
+  const realmlists = files.filter((f) => /(^|\/)realmlist\.wtf$/i.test(f.path));
+  if (realmlists.length) {
+    problemas.push(
+      `el manifiesto trae ${realmlists.length} realmlist.wtf (${realmlists
+        .map((f) => f.path)
+        .join(', ')}). Lo escribe el launcher: si además se descarga, cada ` +
+        `comprobación lo verá dañado y lo bajará otra vez, sin fin. Añádelo a rules.exclude.`
+    );
+  }
+
+  const idiomas = [
+    ...new Set(
+      files
+        .map((f) => /^Data\/([a-z]{2}[A-Z]{2})\//.exec(f.path)?.[1])
+        .filter(Boolean)
+    ),
+  ];
+  if (config.clientLocale && idiomas.length && !idiomas.includes(config.clientLocale)) {
+    problemas.push(
+      `frosthold.config.json declara clientLocale «${config.clientLocale}» y el manifiesto solo ` +
+        `trae ${idiomas.join(', ')}. El launcher escribiría el realmlist en una carpeta que no existe.`
+    );
+  }
+  if (idiomas.length > 1) {
+    problemas.push(
+      `el manifiesto mezcla varios idiomas (${idiomas.join(', ')}): son gigas de más y el cliente ` +
+        `elegiría uno por su cuenta.`
+    );
+  }
+
+  const exe = files.find((f) => f.path === config.executableName);
+  if (!exe) {
+    problemas.push(
+      `el manifiesto no trae ${config.executableName}: el launcher no encontraría qué abrir.`
+    );
+  }
+
+  return problemas;
 }
 
 function transform(upstream) {
@@ -121,6 +174,11 @@ function transform(upstream) {
     seen.add(f.path);
   }
 
+  const incoherencias = revisarCoherencia(files, CONFIG);
+  if (incoherencias.length) {
+    fail(`el manifiesto no cuadra con la configuración:\n  ` + incoherencias.join('\n  '));
+  }
+
   const totalSize = files.reduce((n, f) => n + f.size, 0);
 
   return {
@@ -176,19 +234,27 @@ async function checkSample(files) {
 
 const gib = (n) => (n / 1073741824).toFixed(2) + ' GB';
 
-const upstream = await fetchUpstream();
-const { manifest, report } = transform(upstream);
+async function main() {
+  const upstream = await fetchUpstream();
+  const { manifest, report } = transform(upstream);
 
-mkdirSync(OUT_DIR, { recursive: true });
-writeFileSync(join(OUT_DIR, 'manifest.json'), JSON.stringify(manifest, null, 2));
+  mkdirSync(OUT_DIR, { recursive: true });
+  writeFileSync(join(OUT_DIR, 'manifest.json'), JSON.stringify(manifest, null, 2));
 
-console.log(`\nManifiesto de ${manifest.realm} generado`);
-console.log(`  origen        ${upstream.version ?? '?'}  (${upstream.files.length} archivos)`);
-console.log(`  resultado     ${manifest.totalFiles} archivos · ${gib(manifest.totalSize)}`);
-console.log(`  excluidos     ${report.dropped.join(', ') || '—'}`);
-console.log(`  renombrados   ${report.renamed.join(', ') || '—'}`);
-console.log(`  propios       ${report.extras.join(', ') || '—'}`);
-console.log(`  escrito en    ${join(OUT_DIR, 'manifest.json')}`);
+  console.log(`\nManifiesto de ${manifest.realm} generado`);
+  console.log(`  origen        ${upstream.version ?? '?'}  (${upstream.files.length} archivos)`);
+  console.log(`  resultado     ${manifest.totalFiles} archivos · ${gib(manifest.totalSize)}`);
+  console.log(`  excluidos     ${report.dropped.join(', ') || '—'}`);
+  console.log(`  renombrados   ${report.renamed.join(', ') || '—'}`);
+  console.log(`  propios       ${report.extras.join(', ') || '—'}`);
+  console.log(`  escrito en    ${join(OUT_DIR, 'manifest.json')}`);
 
-if (CHECK) await checkSample(manifest.files);
-console.log();
+  if (CHECK) await checkSample(manifest.files);
+  console.log();
+}
+
+// Solo genera si se ejecuta a mano. Así las pruebas pueden importar
+// `revisarCoherencia` sin salir a la red ni reescribir el manifiesto.
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  await main();
+}

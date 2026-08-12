@@ -105,6 +105,11 @@ body {
 
 main {
   flex: 1;
+  min-height: 0;
+  /* Con el escalado de Windows al 150 % la ventana puede quedarse en 460 px de
+     alto útil. Antes el contenido sobrante se cortaba sin más —incluido el
+     botón de «Jugar»—; ahora la zona de contenido se desplaza. */
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -129,6 +134,27 @@ main {
   gap: 10px;
   font-size: 15px;
   color: var(--white);
+  min-width: 0;
+}
+
+.realm-state-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* La edad de la lectura. Va en gris de metadato mientras el dato es reciente y
+   se enciende cuando deja de serlo: el objetivo es que nadie confunda una
+   cifra de hace media hora con una de ahora. */
+.age {
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--meta);
+}
+
+.age.stale {
+  color: var(--gold);
 }
 
 .dot {
@@ -171,6 +197,12 @@ main {
   font-weight: 600;
   color: var(--gold);
   font-variant-numeric: tabular-nums;
+}
+
+/* El dorado es para los datos que existen. Un hueco no se anuncia. */
+.metrics dd.empty {
+  color: var(--meta);
+  font-weight: 400;
 }
 
 /* ── Panel ────────────────────────────────────────────────────────────────── */
@@ -321,9 +353,22 @@ button:focus-visible {
 
 .error {
   font-size: 12.5px;
+  line-height: 1.5;
   color: var(--down);
   background: rgba(248, 113, 113, 0.08);
   border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: 6px;
+  padding: 9px 12px;
+}
+
+/* Avisos que no impiden seguir: van en el dorado de jerarquía, no en el rojo
+   del estado del reino. El rojo significa «esto está parado». */
+.warn {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--gold);
+  background: rgba(251, 191, 36, 0.07);
+  border: 1px solid rgba(251, 191, 36, 0.25);
   border-radius: 6px;
   padding: 9px 12px;
 }
@@ -429,6 +474,42 @@ button.link:disabled {
 }
 .version {
   font-size: 11px;
-  color: var(--line);
+  /* Antes usaba var(--line), el color de los bordes: sobre el fondo de la barra
+     de título era prácticamente ilegible, y la versión instalada es justo el
+     dato que a alguien le van a pedir cuando algo falle. */
+  color: var(--meta);
   letter-spacing: 0.03em;
+}
+
+/* ── Ventanas cortas o muy escaladas ──────────────────────────────────────── */
+
+@media (max-height: 600px) {
+  main {
+    gap: 12px;
+    padding: 14px 18px;
+  }
+  .panel {
+    gap: 11px;
+    padding: 14px;
+  }
+  .metrics dd {
+    font-size: 17px;
+  }
+  .update {
+    padding: 7px 14px;
+  }
+}
+
+@media (max-width: 860px) {
+  .stage {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .metrics {
+    gap: 18px;
+  }
+  .metrics div {
+    text-align: left;
+  }
 }

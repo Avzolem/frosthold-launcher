@@ -18,24 +18,29 @@
         <span class="version" id="app-version"></span>
       </div>
       <div class="window-buttons">
-        <button id="btn-min" title="Minimizar" aria-label="Minimizar">—</button>
-        <button id="btn-close" title="Cerrar" aria-label="Cerrar">✕</button>
+        <button id="btn-min" title="Minimizar" aria-label="Minimizar la ventana">—</button>
+        <button id="btn-close" title="Cerrar" aria-label="Cerrar el launcher">✕</button>
       </div>
     </header>
 
     <main>
       <div class="update" id="update" hidden>
-        <span class="update-text" id="update-text"></span>
+        <span class="update-text" id="update-text" role="status" aria-live="polite"></span>
         <button id="btn-update" class="update-action" hidden>Reiniciar e instalar</button>
       </div>
 
       <section class="stage">
         <div class="realm-state">
           <span class="dot" id="state-dot" data-state="unknown"></span>
-          <span id="state-label">Consultando el reino…</span>
+          <span class="realm-state-text">
+            <span id="state-label" role="status" aria-live="polite">Consultando el reino…</span>
+            <!-- La edad de la lectura va siempre a la vista: un dato viejo se
+                 declara viejo, nunca se enseña como si fuera de ahora. -->
+            <small id="state-age" class="age"></small>
+          </span>
         </div>
 
-        <dl class="metrics">
+        <dl class="metrics" id="metrics">
           <div><dt>Conectados</dt><dd id="m-players">—</dd></div>
           <div><dt>Cuentas</dt><dd id="m-accounts">—</dd></div>
           <div><dt>En pie</dt><dd id="m-uptime">—</dd></div>
@@ -51,10 +56,20 @@
           <button id="btn-choose" class="ghost">Elegir…</button>
         </div>
 
-        <p id="client-note" class="note"></p>
+        <p id="client-note" class="note" role="status" aria-live="polite"></p>
 
         <div class="progress" id="progress" hidden>
-          <div class="bar"><span id="bar-fill"></span></div>
+          <div
+            class="bar"
+            id="bar"
+            role="progressbar"
+            aria-label="Progreso de la descarga del cliente"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+          >
+            <span id="bar-fill"></span>
+          </div>
           <div class="progress-meta">
             <span id="progress-text">—</span>
             <span id="progress-speed"></span>
@@ -62,11 +77,12 @@
         </div>
 
         <div class="actions">
-          <button id="btn-primary" class="primary" disabled>Elige la carpeta del juego</button>
+          <button id="btn-primary" class="primary">Elegir la carpeta del juego</button>
           <button id="btn-stop" class="ghost" hidden>Detener</button>
         </div>
 
-        <p id="error" class="error" hidden></p>
+        <p id="warning" class="warn" role="status" aria-live="polite" hidden></p>
+        <p id="error" class="error" role="alert" hidden></p>
 
         <!-- Siempre visible: buscar actualizaciones no depende de tener el
              juego, y las dos que sí dependen se apagan hasta que haya carpeta. -->
@@ -76,6 +92,8 @@
           <button id="btn-reset-gfx" class="link" disabled>
             Restablecer gráficos
           </button>
+          <span class="sep" aria-hidden="true">·</span>
+          <button id="btn-verify" class="link" disabled>Verificar el cliente</button>
           <span class="sep" aria-hidden="true">·</span>
           <button id="btn-check-update" class="link">Buscar actualizaciones</button>
         </div>

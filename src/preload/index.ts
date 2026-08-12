@@ -16,6 +16,8 @@ const api = {
     select: () => ipcRenderer.invoke('install:select'),
     inspect: (dir: string) => ipcRenderer.invoke('install:inspect', dir),
     diskSpace: (dir: string) => ipcRenderer.invoke('install:diskSpace', dir),
+    checkTarget: (dir: string, requiredBytes?: number) =>
+      ipcRenderer.invoke('install:checkTarget', dir, requiredBytes),
     applyRealmlist: (dir: string) => ipcRenderer.invoke('install:applyRealmlist', dir),
     readRealmlist: (dir: string) => ipcRenderer.invoke('install:readRealmlist', dir),
     openDir: (dir: string) => ipcRenderer.invoke('install:openDir', dir),
@@ -33,6 +35,7 @@ const api = {
     launch: () => ipcRenderer.invoke('game:launch'),
     stop: () => ipcRenderer.invoke('game:stop'),
     state: () => ipcRenderer.invoke('game:state'),
+    running: () => ipcRenderer.invoke('game:running'),
   },
 
   realm: {
@@ -59,7 +62,10 @@ const api = {
       'download:retry',
       'download:check-progress',
       'download:error',
+      'download:warning',
+      'config:warning',
       'game:state',
+      'game:error',
       'realm:status',
       // Un solo canal con el estado completo. Los tres de antes
       // (available/progress/ready) obligaban a la interfaz a reconstruir la

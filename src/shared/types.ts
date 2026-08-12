@@ -44,6 +44,15 @@ export interface DownloadProgress {
   current: string[];
 }
 
+/** Resultado de `download:plan`, tal y como lo recibe la interfaz. */
+export interface PlanResult {
+  files: number;
+  /** Tamaño total de los archivos que faltan. */
+  bytes: number;
+  /** Lo que queda por transferir de verdad, descontando los .part a medias. */
+  missingBytes: number;
+}
+
 export type Phase =
   | 'idle'
   | 'checking'

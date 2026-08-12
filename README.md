@@ -27,18 +27,39 @@ yarn manifest --check  # además comprueba que una muestra de URLs responde
 yarn build             # compila TypeScript a dist/
 yarn dev               # compila y abre el launcher
 yarn dist              # empaqueta el instalador NSIS en release/
-node scripts/test-downloads.mjs   # prueba el motor contra el CDN real
+yarn test              # las cuatro baterías de pruebas
+```
+
+### Pruebas
+
+| Batería | Qué cubre | Necesita red |
+| --- | --- | --- |
+| `test-downloads.mjs` | descarga, verificación y reanudación contra el CDN real | sí |
+| `test-download-edge.mjs` | rangos rechazados, servidores que los ignoran, cortes a mitad, disco que no admite escritura, detener y reanudar | no (servidor local) |
+| `test-install-checks.mjs` | carpetas protegidas de Windows, espacio, permisos, realmlist, juego ya abierto, mensajes de error, coherencia del manifiesto | no |
+| `test-graphics-reset.mjs` | restablecer gráficos sin tocar teclas, sonido ni cuenta | no |
+
+### Ayudas para revisar la interfaz
+
+```bash
+yarn build
+SHOT_PATH=/tmp/shot.png ./node_modules/electron/dist/electron . --screenshot --no-sandbox
+
+FROSTHOLD_FAKE_UPDATE=ready|downloading|error   # aviso de versión nueva
+FROSTHOLD_FAKE_STATUS=reciente|vieja|caduca|sin # edad del dato del reino
+--window-size=780x470                           # pantalla pequeña o escalado al 150 %
 ```
 
 ## Estructura
 
 ```
-scripts/build-manifest.mjs   generador del manifiesto
-scripts/test-downloads.mjs   pruebas del motor de descargas
+scripts/build-manifest.mjs   generador del manifiesto y su comprobación
+scripts/test-*.mjs           las cuatro baterías de pruebas
 src/main/download-manager.ts motor: reanudación, reintentos, SHA-256
-src/main/install-manager.ts  realmlist, respaldos del WTF, espacio en disco
-src/main/process-manager.ts  arranque del juego
-src/main/status-manager.ts   estado del reino desde la API del sitio
+src/main/install-manager.ts  realmlist, respaldos del WTF, veredicto de la carpeta
+src/main/process-manager.ts  arranque del juego y detección de que ya está abierto
+src/main/status-manager.ts   estado del reino, con la edad del dato
+src/main/net-errors.ts       fallos de red y de disco en lenguaje llano
 src/preload/index.ts         puente aislado hacia la interfaz
 src/renderer/                interfaz (HTML, CSS y JS sin dependencias)
 frosthold.config.json        host del realmlist, rutas y reglas del manifiesto
@@ -56,6 +77,34 @@ ajustes y macros del jugador. Se copia antes de escribir, con rotación de 5.
 
 **`cwd` al lanzar el juego.** El cliente busca `Data/` y `WTF/` relativos al
 directorio de trabajo, no a la ubicación del ejecutable.
+
+**El realmlist se escribe en TODAS las carpetas de idioma.** Quien reutiliza un
+cliente que ya tenía puede acabar con dos idiomas dentro de `Data`, y entonces
+cuál manda lo decide `SET locale` de `Config.wtf`, no nosotros. Escribir solo en
+`esMX` dejaba a esa persona mirando la lista de reinos de otro servidor sin una
+sola pista de por qué.
+
+**El realmlist NO puede estar en el manifiesto.** Si se colara, el launcher lo
+bajaría, lo reescribiría con nuestro host al arrancar el juego, y en la
+comprobación siguiente el hash ya no cuadraría: lo daría por dañado y lo
+volvería a bajar, sin fin. `revisarCoherencia` en `build-manifest.mjs` lo
+comprueba antes de publicar, y hay una prueba que lo fija.
+
+**La carpeta se examina antes de bajar nada.** Permisos de verdad (escribiendo
+un archivo, no preguntando por `access`: en Windows miente), espacio libre con
+cifras, y rechazo de `Archivos de programa`, `ProgramData`, `Windows`, `AppData`
+y `OneDrive`. Descubrir a las tres horas de descarga que la carpeta no valía es
+el peor momento posible.
+
+**Los fallos de disco no se reintentan.** Un disco lleno no se vacía entre
+intento e intento. Se corta la descarga entera, se dice qué pasó y se conserva
+lo bajado; cuatro reintentos por cada uno de los 141 archivos solo alargan la
+agonía.
+
+**«Sin dato» no es «caído».** El estado del reino se sirve con su edad a la
+vista: por encima de tres minutos se declara viejo, y por encima de media hora
+se deja de servir la cifra en vez de servirla con una nota al pie. Nunca se
+pinta un cero donde no hubo lectura.
 
 ## Pendiente
 

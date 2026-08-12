@@ -1,6 +1,7 @@
-import { access, cp, mkdir, readdir, rm, stat, statfs, writeFile } from 'node:fs/promises';
+import { access, cp, mkdir, readdir, rm, stat, statfs, unlink, writeFile } from 'node:fs/promises';
 import { constants } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
+import { diskMessage } from './net-errors';
 
 /** Idiomas que puede traer un cliente 3.3.5a. El nuestro es esMX. */
 const LOCALES = ['esMX', 'esES', 'enUS', 'enGB', 'ptBR', 'frFR', 'deDE', 'ruRU'];
@@ -36,6 +37,58 @@ export interface GraphicsReset {
   /** Las líneas de vídeo que había antes, para poder enseñárselas al jugador. */
   removed: string[];
   applied: string[];
+}
+
+/** Veredicto sobre la carpeta que eligió el jugador, antes de bajar nada. */
+export interface TargetCheck {
+  path: string;
+  /** false = no se puede usar tal cual; hay que elegir otra. */
+  usable: boolean;
+  writable: boolean;
+  /** Bytes libres en la unidad, o null si el sistema no lo quiso decir. */
+  freeBytes: number | null;
+  /** Motivos por los que NO se puede usar. */
+  blockers: string[];
+  /** Cosas que conviene saber pero no impiden seguir. */
+  warnings: string[];
+}
+
+/**
+ * Carpetas de Windows que exigen permisos de administrador o que no son sitio
+ * para 16,5 GB de juego. Instalar ahí es el clásico «me dice que no puede
+ * escribir» que deja a alguien atascado sin entender por qué.
+ *
+ * Se comprueba por ruta y no solo intentando escribir porque el UAC de Windows
+ * tiene virtualización de carpetas: en algunos equipos la escritura «funciona»
+ * y los archivos acaban en VirtualStore, invisibles para el juego.
+ */
+export function protectedWindowsPath(dir: string): string | null {
+  if (!dir) return null;
+  const p = dir.replace(/\//g, '\\');
+  // Solo tiene sentido en rutas con letra de unidad; en otras plataformas la
+  // comprobación no aplica y devolvemos null sin más.
+  if (!/^[a-zA-Z]:\\/.test(p)) return null;
+
+  const sinUnidad = p.slice(2).replace(/\\+$/, '');
+  const bajo = (base: string) =>
+    sinUnidad.toLowerCase() === base || sinUnidad.toLowerCase().startsWith(base + '\\');
+
+  if (bajo('\\program files')) return 'Archivos de programa';
+  if (bajo('\\program files (x86)')) return 'Archivos de programa (x86)';
+  if (bajo('\\programdata')) return 'ProgramData';
+  if (bajo('\\windows')) return 'la carpeta de Windows';
+  if (bajo('\\users\\default')) return 'el perfil predeterminado de Windows';
+  if (/^\\users\\[^\\]+\\(appdata|onedrive)(\\|$)/i.test(sinUnidad)) {
+    return sinUnidad.toLowerCase().includes('onedrive') ? 'OneDrive' : 'AppData';
+  }
+  return null;
+}
+
+/** ¿La ruta es la raíz de una unidad (C:\ o /)? */
+export function isDriveRoot(dir: string): boolean {
+  if (!dir) return false;
+  const norm = dir.replace(/\//g, '\\').replace(/\\+$/, '');
+  return /^[a-zA-Z]:$/.test(norm) || dir === '/';
 }
 
 export class InstallManager {
@@ -86,8 +139,86 @@ export class InstallManager {
     return result;
   }
 
-  async detectLocale(dir: string): Promise<string | null> {
-    for (const l of LOCALES) {
+  /**
+   * Todo lo que hay que saber de la carpeta ANTES de empezar a bajar 16,5 GB:
+   * si se puede escribir en ella de verdad, cuánto sitio queda y si es una de
+   * las carpetas que Windows protege.
+   */
+  async checkTarget(dir: string, requiredBytes: number): Promise<TargetCheck> {
+    const out: TargetCheck = {
+      path: dir,
+      usable: false,
+      writable: false,
+      freeBytes: null,
+      blockers: [],
+      warnings: [],
+    };
+
+    if (!dir) {
+      out.blockers.push('Falta elegir la carpeta del juego.');
+      return out;
+    }
+
+    const protegida = protectedWindowsPath(dir);
+    if (protegida) {
+      out.blockers.push(
+        `Esa carpeta está dentro de ${protegida}, que Windows protege: haría falta permiso de administrador y el juego podría no encontrar sus propios archivos. Elige una carpeta tuya, por ejemplo C:\\Juegos\\Frosthold o D:\\Frosthold.`
+      );
+    }
+
+    if (isDriveRoot(dir)) {
+      out.warnings.push(
+        'Vas a instalar directamente en la raíz de la unidad. Funciona, pero deja 16,5 GB sueltos ahí; conviene una subcarpeta como \\Frosthold.'
+      );
+    }
+
+    const escritura = await this.probeWrite(dir);
+    out.writable = escritura === null;
+    if (escritura) out.blockers.push(escritura);
+
+    const libre = await this.freeSpace(dir);
+    out.freeBytes = libre >= 0 ? libre : null;
+    if (libre >= 0 && requiredBytes > 0 && libre < requiredBytes) {
+      out.blockers.push(
+        `No hay espacio suficiente: hacen falta ${gib(requiredBytes)} y quedan ${gib(libre)} libres en esa unidad.`
+      );
+    } else if (libre >= 0 && requiredBytes > 0 && libre < requiredBytes * 1.15) {
+      out.warnings.push(
+        `Vas justo de espacio: hacen falta ${gib(requiredBytes)} y quedan ${gib(libre)}.`
+      );
+    }
+
+    out.usable = out.blockers.length === 0;
+    return out;
+  }
+
+  /**
+   * Escribe y borra un archivo de verdad. `access(W_OK)` miente en Windows más
+   * de lo que acierta: informa de los permisos de solo lectura del atributo,
+   * no de las ACL ni de los bloqueos, así que una carpeta puede pasar el
+   * `access` y fallar al primer archivo.
+   *
+   * Devuelve null si se pudo escribir, o el motivo en lenguaje llano.
+   */
+  async probeWrite(dir: string): Promise<string | null> {
+    const sonda = join(dir, `.frosthold-prueba-${process.pid}-${Date.now()}`);
+    try {
+      await mkdir(dir, { recursive: true });
+      await writeFile(sonda, 'frosthold');
+      return null;
+    } catch (err) {
+      return (
+        diskMessage(err, dir) ??
+        `No se pudo escribir en esa carpeta: ${(err as Error).message}`
+      );
+    } finally {
+      await unlink(sonda).catch(() => {});
+    }
+  }
+
+  async detectLocale(dir: string, preferred?: string | null): Promise<string | null> {
+    const orden = preferred ? [preferred, ...LOCALES.filter((l) => l !== preferred)] : LOCALES;
+    for (const l of orden) {
       if (await this.exists(join(dir, 'Data', l))) return l;
     }
     // Puede haber un idioma que no esté en la lista: buscamos por estructura.
@@ -101,19 +232,51 @@ export class InstallManager {
     return null;
   }
 
-  /**
-   * Escribe el realmlist en la carpeta de idioma. Este es el paso que más
-   * gente falla a mano: el archivo de la raíz de Data no sirve, tiene que
-   * estar dentro del idioma, y el cliente lo reescribe si lo dejas vacío.
-   */
-  async applyRealmlist(dir: string, host: string, locale?: string): Promise<string> {
-    const loc = locale ?? (await this.detectLocale(dir));
-    if (!loc) throw new Error('No se pudo determinar el idioma del cliente');
+  /** Todas las carpetas de idioma que hay dentro de Data. */
+  async listLocales(dir: string): Promise<string[]> {
+    const found: string[] = [];
+    try {
+      for (const name of await readdir(join(dir, 'Data'), { withFileTypes: true })) {
+        if (name.isDirectory() && /^[a-z]{2}[A-Z]{2}$/.test(name.name)) found.push(name.name);
+      }
+    } catch {
+      /* sin carpeta Data */
+    }
+    return found.sort();
+  }
 
-    const target = join(dir, 'Data', loc, 'realmlist.wtf');
-    await mkdir(join(dir, 'Data', loc), { recursive: true });
-    await writeFile(target, `set realmlist ${host}\r\n`, 'utf8');
-    return target;
+  /**
+   * Escribe el realmlist en TODAS las carpetas de idioma que existan. Este es
+   * el paso que más gente falla a mano: el archivo de la raíz de Data no sirve,
+   * tiene que estar dentro del idioma.
+   *
+   * Se escriben todas y no solo la nuestra porque quien reutiliza un cliente
+   * que ya tenía —lo normal— puede acabar con dos idiomas en Data, y entonces
+   * el que manda lo decide `SET locale` de Config.wtf, no nosotros. Escribir en
+   * la carpeta equivocada deja al jugador mirando la lista de reinos de otro
+   * servidor sin ninguna pista de por qué.
+   */
+  async applyRealmlist(
+    dir: string,
+    host: string,
+    preferred?: string | null
+  ): Promise<{ written: string[]; locale: string }> {
+    const presentes = await this.listLocales(dir);
+    const objetivo = presentes.length
+      ? presentes
+      : [(await this.detectLocale(dir, preferred)) ?? preferred ?? 'esMX'];
+
+    const written: string[] = [];
+    for (const loc of objetivo) {
+      const target = join(dir, 'Data', loc, 'realmlist.wtf');
+      await mkdir(join(dir, 'Data', loc), { recursive: true });
+      await writeFile(target, `set realmlist ${host}\r\n`, 'utf8');
+      written.push(target);
+    }
+
+    const principal =
+      (preferred && objetivo.includes(preferred) ? preferred : null) ?? objetivo[0];
+    return { written, locale: principal };
   }
 
   async readRealmlist(dir: string, locale?: string): Promise<string | null> {
@@ -200,12 +363,20 @@ export class InstallManager {
   }
 
   async freeSpace(dir: string): Promise<number> {
-    try {
-      const fs = await statfs(dir);
-      return fs.bavail * fs.bsize;
-    } catch {
-      return -1;
+    // Si la carpeta aún no existe, la unidad sí: se sube por el árbol hasta
+    // encontrar algo que el sistema sepa medir.
+    let actual = resolve(dir);
+    for (let i = 0; i < 12; i++) {
+      try {
+        const fs = await statfs(actual);
+        return fs.bavail * fs.bsize;
+      } catch {
+        const padre = resolve(actual, '..');
+        if (padre === actual) break;
+        actual = padre;
+      }
     }
+    return -1;
   }
 
   async ensureWritable(dir: string): Promise<boolean> {
@@ -226,4 +397,8 @@ export class InstallManager {
       return false;
     }
   }
+}
+
+function gib(n: number): string {
+  return `${(n / 1073741824).toFixed(1)} GB`;
 }

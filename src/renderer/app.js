@@ -6,12 +6,14 @@ const $ = (id) => document.getElementById(id);
 const ui = {
   stateDot: $('state-dot'),
   stateLabel: $('state-label'),
+  stateAge: $('state-age'),
   players: $('m-players'),
   accounts: $('m-accounts'),
   uptime: $('m-uptime'),
   path: $('install-path'),
   note: $('client-note'),
   progress: $('progress'),
+  bar: $('bar'),
   barFill: $('bar-fill'),
   progressText: $('progress-text'),
   progressSpeed: $('progress-speed'),
@@ -19,10 +21,12 @@ const ui = {
   stop: $('btn-stop'),
   choose: $('btn-choose'),
   error: $('error'),
+  warning: $('warning'),
   realmlist: $('realmlist-host'),
   tools: $('tools'),
   openDir: $('btn-open-dir'),
   resetGfx: $('btn-reset-gfx'),
+  verify: $('btn-verify'),
   checkUpdate: $('btn-check-update'),
   update: $('update'),
   updateText: $('update-text'),
@@ -30,9 +34,18 @@ const ui = {
 };
 
 /** Qué puede hacer el botón grande en cada momento. */
-let mode = 'choose'; // choose | check | download | play
+let mode = 'choose'; // choose | check | download | downloading | play
 let installDir = null;
 let pendingBytes = 0;
+
+/**
+ * Umbrales de la edad del dato del reino, en segundos.
+ * `VIEJO`: sigue sirviendo, pero declarado viejo.
+ * `CADUCO`: deja de servirse. Enseñar «3 conectados» de hace media hora es
+ * peor que no enseñar nada: quien lo lee se lo cree.
+ */
+const VIEJO = 180;
+const CADUCO = 1800;
 
 // ── Formato ─────────────────────────────────────────────────────────────────
 
@@ -54,20 +67,61 @@ function duration(sec) {
   const m = Math.floor((sec % 3600) / 60);
   if (d) return `${d} d ${h} h`;
   if (h) return `${h} h ${m} min`;
-  return `${m} min`;
+  if (m) return `${m} min`;
+  return `${Math.max(Math.floor(sec), 0)} s`;
 }
 
 function showError(msg) {
-  ui.error.textContent = msg;
+  ui.error.textContent = msg ?? '';
   ui.error.hidden = !msg;
+}
+
+function showWarning(msg) {
+  ui.warning.textContent = msg ?? '';
+  ui.warning.hidden = !msg;
 }
 
 // ── Estado del reino ────────────────────────────────────────────────────────
 
-function paintStatus(s) {
-  if (!s) {
+/**
+ * Escribe una cifra. Si no hay dato pone una raya, y la raya va en gris: el
+ * dorado es para los datos que existen, no para los huecos.
+ */
+function metric(el, valor) {
+  const hay = valor !== null && valor !== undefined;
+  el.textContent = hay ? valor : '—';
+  el.classList.toggle('empty', !hay);
+}
+
+/** Vacía las cifras. Nunca se pinta un cero donde no hubo lectura. */
+function blankMetrics() {
+  metric(ui.players, null);
+  metric(ui.accounts, null);
+  metric(ui.uptime, null);
+}
+
+/**
+ * `reading` es {status, fetchedAt, ageSeconds, error}. La edad manda: sin dato
+ * reciente no se pinta una cifra, y desde luego no se pinta un cero.
+ */
+function paintStatus(reading) {
+  const s = reading && reading.status;
+  const edad = reading ? reading.ageSeconds : null;
+
+  if (!s || edad == null) {
     ui.stateDot.dataset.state = 'unknown';
     ui.stateLabel.textContent = 'Sin datos del reino';
+    ui.stateAge.textContent = reading && reading.error ? reading.error : '';
+    blankMetrics();
+    return;
+  }
+
+  if (edad > CADUCO) {
+    // Deja de servirse el dato en vez de servirlo con una nota al pie.
+    ui.stateDot.dataset.state = 'unknown';
+    ui.stateLabel.textContent = 'Sin lectura reciente del reino';
+    ui.stateAge.textContent = `la última fue hace ${duration(edad)}`;
+    blankMetrics();
     return;
   }
 
@@ -79,56 +133,100 @@ function paintStatus(s) {
         ? 'El reino está caído'
         : 'Sin datos recientes del reino';
 
-  ui.players.textContent = s.playersOnline ?? '—';
-  ui.accounts.textContent = s.accounts ?? '—';
-  ui.uptime.textContent = s.bootedAt
-    ? duration(Math.floor((Date.now() - new Date(s.bootedAt).getTime()) / 1000))
-    : '—';
+  ui.stateAge.textContent = edad > VIEJO ? `lectura de hace ${duration(edad)}` : '';
+  ui.stateAge.classList.toggle('stale', edad > VIEJO);
+
+  metric(ui.players, s.playersOnline);
+  metric(ui.accounts, s.accounts);
+  metric(
+    ui.uptime,
+    s.bootedAt ? duration(Math.floor((Date.now() - new Date(s.bootedAt).getTime()) / 1000)) : null
+  );
 }
+
+// Sin esto, una lectura de hace 20 minutos seguiría diciendo «hace 30 s» hasta
+// que llegara la siguiente. La edad se recalcula sola.
+let ultimaLectura = null;
+setInterval(() => {
+  if (ultimaLectura && ultimaLectura.fetchedAt) {
+    const propia = Math.floor((Date.now() - ultimaLectura.fetchedAt) / 1000);
+    const delServidor = ultimaLectura.status?.ageSeconds ?? 0;
+    paintStatus({ ...ultimaLectura, ageSeconds: propia + delServidor });
+  }
+}, 15000);
 
 // ── Carpeta del juego ───────────────────────────────────────────────────────
 
 async function useDir(dir) {
   installDir = dir;
   ui.path.textContent = dir;
+  ui.path.title = dir;
   ui.openDir.disabled = false;
   ui.resetGfx.disabled = false;
+  ui.verify.disabled = false;
+  showError('');
+  showWarning('');
   await frosthold.config.set({ installDir: dir });
 
   const check = await frosthold.install.inspect(dir);
-  if (check.ok) {
-    ui.note.className = 'note good';
-    ui.note.textContent = `Cliente encontrado (${check.executable}, idioma ${check.locale}). Comprobando qué falta…`;
-    setMode('check');
-    await runPlan();
-  } else {
-    ui.note.className = 'note';
-    ui.note.textContent =
-      'Esta carpeta aún no tiene el juego. Se descargará completo, son unos 16,5 GB.';
-    setMode('check');
-    await runPlan();
-  }
+  ui.note.className = 'note';
+  ui.note.textContent = check.ok
+    ? `Cliente encontrado (${check.executable}, idioma ${check.locale}). Comprobando qué falta…`
+    : 'Comprobando qué hace falta descargar…';
+
+  setMode('check');
+  await runPlan(false);
 }
 
-async function runPlan() {
+async function runPlan(deep) {
   showError('');
+  ui.primary.disabled = true;
   try {
     await frosthold.download.manifest();
-    const { files, bytes: needed } = await frosthold.download.plan(false);
-    pendingBytes = needed;
+    const plan = await frosthold.download.plan(Boolean(deep));
+    pendingBytes = plan.missingBytes ?? plan.bytes;
 
-    if (files === 0) {
+    if (plan.files === 0) {
       ui.note.className = 'note good';
       ui.note.textContent = 'El cliente está completo y verificado.';
       setMode('play');
-    } else {
-      ui.note.className = 'note';
-      ui.note.textContent = `Faltan ${files} archivos (${bytes(needed)}).`;
-      setMode('download');
+      await avisarDeLaCarpeta(0);
+      return;
     }
+
+    ui.note.className = 'note';
+    ui.note.textContent =
+      `Faltan ${plan.files} ${plan.files === 1 ? 'archivo' : 'archivos'} (${bytes(pendingBytes)}).` +
+      (plan.bytes !== pendingBytes ? ` Ya hay ${bytes(plan.bytes - pendingBytes)} bajados a medias.` : '');
+    setMode('download');
+    await avisarDeLaCarpeta(pendingBytes);
   } catch (err) {
     showError(err.message ?? String(err));
     setMode('check');
+  } finally {
+    if (mode !== 'downloading') ui.primary.disabled = false;
+  }
+}
+
+/**
+ * Lo que hay que saber de la carpeta ANTES de pulsar «Descargar»: si Windows
+ * la protege, si se puede escribir en ella y si cabe. Descubrirlo a las tres
+ * horas de descarga es el peor momento posible.
+ */
+async function avisarDeLaCarpeta(necesarios) {
+  if (!installDir) return;
+  try {
+    const t = await frosthold.install.checkTarget(installDir, Math.ceil(necesarios * 1.05));
+    if (!t.usable) {
+      showError(t.blockers.join(' '));
+      showWarning('');
+      setMode('check');
+      return;
+    }
+    showWarning(t.warnings.join(' '));
+  } catch {
+    // Que falle la comprobación no puede impedir seguir: como mucho nos
+    // quedamos sin el aviso previo.
   }
 }
 
@@ -140,8 +238,10 @@ function setMode(next) {
   ui.stop.hidden = true;
 
   if (next === 'choose') {
-    ui.primary.textContent = 'Elige la carpeta del juego';
-    ui.primary.disabled = true;
+    // Antes este botón estaba apagado en el primer arranque: el control más
+    // grande de la ventana no hacía nada y la única salida era un botón
+    // secundario en la esquina.
+    ui.primary.textContent = 'Elegir la carpeta del juego';
   } else if (next === 'check') {
     ui.primary.textContent = 'Comprobar de nuevo';
   } else if (next === 'download') {
@@ -157,34 +257,60 @@ function setMode(next) {
 
 ui.primary.addEventListener('click', async () => {
   showError('');
+  const previo = mode;
   try {
-    if (mode === 'check') {
-      await runPlan();
+    if (mode === 'choose') {
+      await elegirCarpeta();
+    } else if (mode === 'check') {
+      await runPlan(false);
     } else if (mode === 'download') {
       ui.progress.hidden = false;
       setMode('downloading');
-      await frosthold.download.start();
+      const res = await frosthold.download.start();
+      if (res && res.warnings && res.warnings.length) showWarning(res.warnings.join(' '));
     } else if (mode === 'play') {
+      ui.primary.disabled = true;
       await frosthold.game.launch();
     }
   } catch (err) {
     showError(err.message ?? String(err));
-    setMode(mode === 'downloading' ? 'download' : mode);
+    setMode(previo === 'downloading' ? 'download' : previo);
   }
 });
 
 ui.stop.addEventListener('click', () => {
   frosthold.download.stop();
+  ui.note.textContent = 'Descarga detenida. Continuará desde donde se quedó.';
   setMode('download');
 });
 
-ui.choose.addEventListener('click', async () => {
+async function elegirCarpeta() {
   const dir = await frosthold.install.select();
   if (dir) await useDir(dir);
+}
+
+ui.choose.addEventListener('click', async () => {
+  try {
+    await elegirCarpeta();
+  } catch (err) {
+    showError(err.message ?? String(err));
+  }
 });
 
-ui.openDir.addEventListener('click', () => {
-  if (installDir) frosthold.install.openDir(installDir);
+ui.openDir.addEventListener('click', async () => {
+  if (!installDir) return;
+  try {
+    await frosthold.install.openDir(installDir);
+  } catch (err) {
+    showError(err.message ?? String(err));
+  }
+});
+
+ui.verify.addEventListener('click', async () => {
+  if (!installDir || mode === 'downloading') return;
+  ui.note.className = 'note';
+  ui.note.textContent = 'Verificando el cliente archivo por archivo. Esto tarda unos minutos…';
+  await runPlan(true);
 });
 
 ui.resetGfx.addEventListener('click', async () => {
@@ -252,6 +378,8 @@ ui.checkUpdate.addEventListener('click', async () => {
   ui.checkUpdate.disabled = true;
   try {
     paintUpdate(await frosthold.updater.check());
+  } catch (err) {
+    showError(err.message ?? String(err));
   } finally {
     ui.checkUpdate.disabled = false;
   }
@@ -278,8 +406,13 @@ $('btn-close').addEventListener('click', () => frosthold.window.close());
 // ── Eventos del proceso principal ───────────────────────────────────────────
 
 frosthold.on('download:progress', (p) => {
-  const pct = p.bytesTotal ? (p.bytesDone / p.bytesTotal) * 100 : 0;
-  ui.barFill.style.width = `${Math.min(pct, 100)}%`;
+  const pct = p.bytesTotal ? Math.min((p.bytesDone / p.bytesTotal) * 100, 100) : 0;
+  ui.barFill.style.width = `${pct}%`;
+  ui.bar.setAttribute('aria-valuenow', String(Math.round(pct)));
+  ui.bar.setAttribute(
+    'aria-valuetext',
+    `${Math.round(pct)} por ciento, ${bytes(p.bytesDone)} de ${bytes(p.bytesTotal)}`
+  );
   ui.progressText.textContent = `${bytes(p.bytesDone)} de ${bytes(p.bytesTotal)} · ${p.filesDone}/${p.filesTotal} archivos`;
   ui.progressSpeed.textContent = p.speed
     ? `${bytes(p.speed)}/s${p.etaSeconds != null ? ` · faltan ${duration(p.etaSeconds)}` : ''}`
@@ -298,6 +431,8 @@ frosthold.on('download:phase', (phase) => {
     setMode('play');
   } else if (phase === 'error') {
     setMode('download');
+  } else if (phase === 'idle' && mode === 'downloading') {
+    setMode('download');
   }
 });
 
@@ -310,26 +445,50 @@ frosthold.on('download:error', (msg) => {
   setMode('download');
 });
 
-frosthold.on('realm:status', paintStatus);
+frosthold.on('download:warning', (w) => showWarning(w && w.message));
+frosthold.on('config:warning', (msg) => showWarning(msg));
+frosthold.on('game:error', (msg) => {
+  showError(msg);
+  if (mode === 'play') setMode('play');
+});
+
+frosthold.on('realm:status', (reading) => {
+  ultimaLectura = reading;
+  paintStatus(reading);
+});
 
 // ── Arranque ────────────────────────────────────────────────────────────────
 
 (async () => {
-  const info = await frosthold.info();
-  $('realm-name').textContent = info.realmName;
-  $('realm-patch').textContent = info.patch;
-  $('app-version').textContent = `v${info.version}`;
-  ui.realmlist.textContent = `set realmlist ${info.realmlistHost}`;
+  // Sin este envoltorio, cualquier fallo aquí dejaba la ventana congelada en
+  // «Consultando el reino…» con el botón apagado y sin una sola pista.
+  try {
+    const info = await frosthold.info();
+    $('realm-name').textContent = info.realmName;
+    $('realm-patch').textContent = info.patch;
+    $('app-version').textContent = `v${info.version}`;
+    ui.realmlist.textContent = `set realmlist ${info.realmlistHost}`;
 
-  paintStatus(await frosthold.realm.status());
-  // El estado se pide además de escucharse: la primera comprobación puede
-  // haber terminado antes de que esta ventana estuviera lista para oírla.
-  paintUpdate(await frosthold.updater.state());
+    const lectura = await frosthold.realm.status();
+    ultimaLectura = lectura;
+    paintStatus(lectura);
+    // El estado se pide además de escucharse: la primera comprobación puede
+    // haber terminado antes de que esta ventana estuviera lista para oírla.
+    paintUpdate(await frosthold.updater.state());
 
-  const cfg = await frosthold.config.get();
-  if (cfg.installDir) {
-    await useDir(cfg.installDir);
-  } else {
+    const cfg = await frosthold.config.get();
+    if (cfg.installDir) {
+      await useDir(cfg.installDir);
+    } else {
+      setMode('choose');
+      ui.note.textContent =
+        'Elige dónde quieres el juego. Hacen falta unos 17 GB libres y una carpeta tuya, no «Archivos de programa».';
+    }
+    ui.primary.focus();
+  } catch (err) {
+    showError(
+      `El launcher no pudo arrancar del todo: ${err?.message ?? err}. Ciérralo y vuelve a abrirlo; si sigue igual, avisa en la comunidad.`
+    );
     setMode('choose');
   }
 })();
