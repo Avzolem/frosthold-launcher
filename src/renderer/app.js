@@ -17,8 +17,9 @@ const ui = {
   barFill: $('bar-fill'),
   progressText: $('progress-text'),
   progressSpeed: $('progress-speed'),
-  primary: $('btn-primary'),
-  primaryLabel: $('btn-primary-label'),
+  action: $('btn-action'),
+  actionLabel: $('btn-action-label'),
+  play: $('btn-play'),
   stop: $('btn-stop'),
   choose: $('btn-choose'),
   error: $('error'),
@@ -181,7 +182,7 @@ async function useDir(dir) {
 
 async function runPlan(deep) {
   showError('');
-  ui.primary.disabled = true;
+  ui.action.disabled = true;
   try {
     await frosthold.download.manifest();
     const plan = await frosthold.download.plan(Boolean(deep));
@@ -205,7 +206,7 @@ async function runPlan(deep) {
     showError(err.message ?? String(err));
     setMode('check');
   } finally {
-    if (mode !== 'downloading') ui.primary.disabled = false;
+    if (mode !== 'downloading') ui.action.disabled = false;
   }
 }
 
@@ -241,35 +242,31 @@ async function avisarDeLaCarpeta(necesarios) {
  */
 function setMode(next) {
   mode = next;
-  ui.primary.disabled = false;
   ui.stop.hidden = true;
-  ui.primary.classList.remove('busy');
+
+  // El botón grande SIEMPRE dice «PLAY» y solo se enciende cuando de verdad se
+  // puede jugar. Es lo que hace el launcher original mientras parchea, y evita
+  // que el control más visible de la ventana cambie de nombre cinco veces.
+  ui.play.disabled = next !== 'play';
+
+  // La acción del momento vive aparte, y desaparece cuando ya no queda nada
+  // que hacer antes de jugar.
+  ui.action.hidden = next === 'play';
+  ui.action.disabled = next === 'downloading';
 
   if (next === 'choose') {
-    // Antes este botón estaba apagado en el primer arranque: el control más
-    // grande de la ventana no hacía nada y la única salida era un botón
-    // secundario en la esquina.
-    ui.primaryLabel.textContent = 'Elegir carpeta';
-    ui.primary.classList.add('busy');
+    ui.actionLabel.textContent = 'Elegir carpeta';
   } else if (next === 'check') {
-    ui.primaryLabel.textContent = 'Comprobar';
-    ui.primary.classList.add('busy');
+    ui.actionLabel.textContent = 'Comprobar';
   } else if (next === 'download') {
-    ui.primaryLabel.textContent = `Descargar ${bytes(pendingBytes)}`;
-    ui.primary.classList.add('busy');
+    ui.actionLabel.textContent = `Descargar ${bytes(pendingBytes)}`;
   } else if (next === 'downloading') {
-    ui.primaryLabel.textContent = 'Descargando…';
-    ui.primary.classList.add('busy');
-    ui.primary.disabled = true;
+    ui.actionLabel.textContent = 'Descargando…';
     ui.stop.hidden = false;
-  } else if (next === 'play') {
-    // El único estado que se lleva la tipografía grande, porque es el único
-    // que el jugador está buscando con la mirada.
-    ui.primaryLabel.textContent = 'Jugar';
   }
 }
 
-ui.primary.addEventListener('click', async () => {
+ui.action.addEventListener('click', async () => {
   showError('');
   const previo = mode;
   try {
@@ -282,13 +279,21 @@ ui.primary.addEventListener('click', async () => {
       setMode('downloading');
       const res = await frosthold.download.start();
       if (res && res.warnings && res.warnings.length) showWarning(res.warnings.join(' '));
-    } else if (mode === 'play') {
-      ui.primary.disabled = true;
-      await frosthold.game.launch();
     }
   } catch (err) {
     showError(err.message ?? String(err));
     setMode(previo === 'downloading' ? 'download' : previo);
+  }
+});
+
+ui.play.addEventListener('click', async () => {
+  showError('');
+  ui.play.disabled = true;
+  try {
+    await frosthold.game.launch();
+  } catch (err) {
+    showError(err.message ?? String(err));
+    ui.play.disabled = false;
   }
 });
 
@@ -500,7 +505,7 @@ frosthold.on('realm:status', (reading) => {
       ui.note.textContent =
         'Elige dónde quieres el juego. Hacen falta unos 17 GB libres y una carpeta tuya, no «Archivos de programa».';
     }
-    ui.primary.focus();
+    (mode === 'play' ? ui.play : ui.action).focus();
   } catch (err) {
     showError(
       `El launcher no pudo arrancar del todo: ${err?.message ?? err}. Ciérralo y vuelve a abrirlo; si sigue igual, avisa en la comunidad.`

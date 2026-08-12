@@ -106,6 +106,26 @@ vista: por encima de tres minutos se declara viejo, y por encima de media hora
 se deja de servir la cifra en vez de servirla con una nota al pie. Nunca se
 pinta un cero donde no hubo lectura.
 
+## Procedencia de los recursos gráficos
+
+`src/renderer/assets/` contiene arte que **no es original de este proyecto**:
+
+- `play*.png` y `btn*.png` son los botones del launcher clásico de World of
+  Warcraft, en su variante de Wrath of the Lich King. Son obra de Blizzard
+  Entertainment.
+- `backdrop.jpg` es arte promocional de Wrath of the Lich King, también de
+  Blizzard, con el logotipo de la expansión retirado.
+
+Frosthold es un reino privado sin ánimo de lucro: no cobra por jugar, no tiene
+tienda y no acepta donaciones. Aun así, conviene que quede escrito y no
+sobreentendido: World of Warcraft, Wrath of the Lich King y todo el material
+gráfico asociado son marcas y obra de Blizzard Entertainment, Inc. Este
+proyecto no está afiliado a Blizzard ni cuenta con su respaldo.
+
+Quien reutilice este repositorio debería sustituir esos archivos por arte
+propio. El resto de la interfaz —marcos, tipografía, disposición— sí está
+hecho aquí y no depende de ellos.
+
 ## Pendiente
 
 - Firma de código. Sin certificado, Windows muestra el aviso de SmartScreen en

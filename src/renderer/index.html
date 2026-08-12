@@ -69,17 +69,6 @@
           <p id="warning" class="warn" role="status" aria-live="polite" hidden></p>
           <p id="error" class="error" role="alert" hidden></p>
 
-          <!-- Siempre visible: buscar actualizaciones no depende de tener el
-               juego, y las dos que sí dependen se apagan hasta que haya carpeta. -->
-          <div class="tools" id="tools">
-            <button id="btn-open-dir" class="link" disabled>Abrir la carpeta</button>
-            <span class="sep" aria-hidden="true">·</span>
-            <button id="btn-reset-gfx" class="link" disabled>Restablecer gráficos</button>
-            <span class="sep" aria-hidden="true">·</span>
-            <button id="btn-verify" class="link" disabled>Verificar el cliente</button>
-            <span class="sep" aria-hidden="true">·</span>
-            <button id="btn-check-update" class="link">Buscar actualizaciones</button>
-          </div>
         </section>
       </div>
     </main>
@@ -110,13 +99,29 @@
           <span>realmlist</span>
           <code id="realmlist-host">—</code>
         </div>
+
+        <!-- Las utilidades, con el marco de hielo del launcher original.
+             Buscar actualizaciones no depende de tener el juego; las otras
+             tres se apagan hasta que haya carpeta elegida. -->
+        <div class="tools" id="tools">
+          <button id="btn-open-dir" class="stone" disabled>Abrir la carpeta</button>
+          <button id="btn-reset-gfx" class="stone" disabled>Restablecer gráficos</button>
+          <button id="btn-verify" class="stone" disabled>Verificar el cliente</button>
+          <button id="btn-check-update" class="stone">Buscar actualizaciones</button>
+        </div>
       </div>
 
       <div class="dock-right">
-        <button id="btn-stop" class="ghost stop" hidden>Detener</button>
-        <button id="btn-primary" class="play">
-          <span class="play-label" id="btn-primary-label">Elegir carpeta</span>
+        <button id="btn-stop" class="stone" hidden>Detener</button>
+        <!-- La acción que toque ahora mismo: elegir carpeta, comprobar o
+             descargar. Desaparece cuando ya solo queda jugar. -->
+        <button id="btn-action" class="stone action" hidden>
+          <span id="btn-action-label">Elegir carpeta</span>
         </button>
+        <!-- El botón grande es SIEMPRE «PLAY», gris mientras no se pueda
+             jugar. Es lo que hace el launcher original mientras parchea, y es
+             lo que hace que la ventana se lea de un vistazo. -->
+        <button id="btn-play" class="play" disabled aria-label="Jugar"></button>
       </div>
     </footer>
 

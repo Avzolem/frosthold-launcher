@@ -436,11 +436,6 @@ button.ghost:disabled {
   border-top: 1px solid rgba(200, 164, 74, 0.13);
 }
 
-.tools .sep {
-  color: var(--line);
-  font-size: 12px;
-}
-
 button.link {
   background: none;
   border: 0;
@@ -545,101 +540,102 @@ button.link:disabled {
   user-select: text;
 }
 
+/* ── Botones de piedra ─────────────────────────────────────────────────── */
+
+/* El arte es el del launcher clásico: marco de hielo sobre piedra. Se usa como
+   `border-image` para que cada botón se ajuste a su texto sin deformar el
+   filo — la imagen mide 159x27 y el marco ocupa unos 8 px por lado. */
+button.stone {
+  position: relative;
+  padding: 8px 12px;
+  min-height: 30px;
+  border: 8px solid transparent;
+  border-image: url('assets/btn.png') 8 fill / 8px / 0 stretch;
+  background: transparent;
+  color: #cfe0f2;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+
+/* El contorno de foco del navegador es un rectángulo amarillo que no pega con
+   nada. Se sustituye por un halo de hielo, y solo cuando se navega con
+   teclado: con el ratón estorba. */
+button.stone:focus-visible,
+.play:focus-visible {
+  outline: none;
+  filter: drop-shadow(0 0 7px rgba(125, 211, 252, 0.85));
+}
+
+button.stone:hover:not(:disabled) {
+  border-image-source: url('assets/btn-hover.png');
+  color: #fff;
+}
+
+button.stone:active:not(:disabled) {
+  border-image-source: url('assets/btn-down.png');
+  translate: 0 1px;
+}
+
+button.stone:disabled {
+  cursor: default;
+  color: #6d7c8c;
+  filter: saturate(0.35) brightness(0.75);
+}
+
+/* La acción del momento: pesa más que las utilidades, sin llegar a competir
+   con el botón grande. */
+button.stone.action {
+  padding: 12px 22px;
+  font-size: 13.5px;
+  color: var(--gold-lite);
+}
+
+/* Rejilla de dos por dos en vez de una fila que se parte sola: las cuatro no
+   caben a lo ancho junto al botón grande, y tres arriba con una suelta debajo
+   se lee como un error de maqueta. Las columnas se igualan al botón más ancho
+   de cada una, que es lo que le da el aire ordenado del original. */
+.tools {
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  gap: 7px;
+  margin-top: 2px;
+}
+
 /* ── El botón grande ────────────────────────────────────────────────────── */
 
-/* Recreado entero con degradados y filos. El original de Blizzard es una
-   imagen suya y no se usa aquí: lo que se copia es la IDEA —bloque ancho,
-   bisel dorado, letra serif con brillo— no su material. */
+/* Es el del launcher original, con sus cuatro estados. No lleva texto propio:
+   «PLAY» viene dentro de la imagen, con su dorado y su bisel. */
 .play {
-  position: relative;
-  min-width: 178px;
-  padding: 17px 30px;
-  border-radius: 4px;
+  width: 156px;
+  height: 89px;
+  flex: none;
+  border: 0;
+  padding: 0;
+  background: url('assets/play.png') center / 100% 100% no-repeat;
   cursor: pointer;
-  font-family: var(--serif);
-  font-size: 21px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--gold-lite);
-  border: 1px solid var(--gold-deep);
-  background:
-    linear-gradient(180deg, rgba(38, 62, 92, 0.96) 0%, rgba(16, 30, 48, 0.98) 48%, rgba(9, 18, 31, 0.98) 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(246, 226, 160, 0.35),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.6),
-    inset 0 0 26px rgba(125, 211, 252, 0.09),
-    0 4px 16px rgba(0, 0, 0, 0.6);
-  text-shadow: 0 0 14px rgba(251, 191, 36, 0.45), 0 1px 2px rgba(0, 0, 0, 0.9);
-  transition:
-    box-shadow 0.18s ease,
-    color 0.18s ease,
-    border-color 0.18s ease;
-}
-
-/* Las dos escuadras doradas de las esquinas, como en los marcos. */
-.play::before,
-.play::after {
-  content: '';
-  position: absolute;
-  width: 9px;
-  height: 9px;
-  border: 1px solid rgba(246, 226, 160, 0.6);
-  pointer-events: none;
-}
-
-.play::before {
-  top: 3px;
-  left: 3px;
-  border-right: 0;
-  border-bottom: 0;
-}
-
-.play::after {
-  bottom: 3px;
-  right: 3px;
-  border-left: 0;
-  border-top: 0;
+  filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.65));
+  transition: filter 0.18s ease;
 }
 
 .play:hover:not(:disabled) {
-  color: #fff6d8;
-  border-color: var(--gold);
-  box-shadow:
-    inset 0 1px 0 rgba(246, 226, 160, 0.5),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.6),
-    inset 0 0 34px rgba(125, 211, 252, 0.16),
-    0 0 24px rgba(251, 191, 36, 0.28),
-    0 4px 18px rgba(0, 0, 0, 0.6);
+  background-image: url('assets/play-hover.png');
+  filter: drop-shadow(0 0 16px rgba(125, 211, 252, 0.45)) drop-shadow(0 4px 14px rgba(0, 0, 0, 0.65));
 }
 
 .play:active:not(:disabled) {
+  background-image: url('assets/play-down.png');
   translate: 0 1px;
 }
 
 .play:disabled {
+  background-image: url('assets/play-off.png');
   cursor: default;
-  color: #8d8a7a;
-  border-color: #3d3a2c;
-  text-shadow: none;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 3px 12px rgba(0, 0, 0, 0.5);
-}
-
-.play:disabled::before,
-.play:disabled::after {
-  border-color: rgba(141, 138, 122, 0.35);
-}
-
-/* Mientras descarga, el botón deja de ser el protagonista. */
-.play.busy {
-  font-size: 15px;
-  letter-spacing: 0.08em;
-}
-
-button.stop {
-  padding: 12px 16px;
+  filter: drop-shadow(0 3px 10px rgba(0, 0, 0, 0.5));
 }
 
 /* ── Ventanas estrechas ─────────────────────────────────────────────────── */
