@@ -18,6 +18,7 @@ const ui = {
   progressText: $('progress-text'),
   progressSpeed: $('progress-speed'),
   primary: $('btn-primary'),
+  primaryLabel: $('btn-primary-label'),
   stop: $('btn-stop'),
   choose: $('btn-choose'),
   error: $('error'),
@@ -232,26 +233,39 @@ async function avisarDeLaCarpeta(necesarios) {
 
 // ── Botón principal ─────────────────────────────────────────────────────────
 
+/**
+ * El botón grande es de una sola palabra siempre que puede. Es lo que lo hace
+ * legible de un vistazo desde el otro lado del escritorio, y es también por lo
+ * que la etiqueta vive en un `<span>`: el botón lleva sus propias esquinas
+ * doradas en `::before`/`::after`, y escribir en `textContent` las borraría.
+ */
 function setMode(next) {
   mode = next;
   ui.primary.disabled = false;
   ui.stop.hidden = true;
+  ui.primary.classList.remove('busy');
 
   if (next === 'choose') {
     // Antes este botón estaba apagado en el primer arranque: el control más
     // grande de la ventana no hacía nada y la única salida era un botón
     // secundario en la esquina.
-    ui.primary.textContent = 'Elegir la carpeta del juego';
+    ui.primaryLabel.textContent = 'Elegir carpeta';
+    ui.primary.classList.add('busy');
   } else if (next === 'check') {
-    ui.primary.textContent = 'Comprobar de nuevo';
+    ui.primaryLabel.textContent = 'Comprobar';
+    ui.primary.classList.add('busy');
   } else if (next === 'download') {
-    ui.primary.textContent = `Descargar ${bytes(pendingBytes)}`;
+    ui.primaryLabel.textContent = `Descargar ${bytes(pendingBytes)}`;
+    ui.primary.classList.add('busy');
   } else if (next === 'downloading') {
-    ui.primary.textContent = 'Descargando…';
+    ui.primaryLabel.textContent = 'Descargando…';
+    ui.primary.classList.add('busy');
     ui.primary.disabled = true;
     ui.stop.hidden = false;
   } else if (next === 'play') {
-    ui.primary.textContent = 'Jugar';
+    // El único estado que se lleva la tipografía grande, porque es el único
+    // que el jugador está buscando con la mirada.
+    ui.primaryLabel.textContent = 'Jugar';
   }
 }
 
@@ -464,7 +478,9 @@ frosthold.on('realm:status', (reading) => {
   // «Consultando el reino…» con el botón apagado y sin una sola pista.
   try {
     const info = await frosthold.info();
-    $('realm-name').textContent = info.realmName;
+    // El nombre del reino ya no es texto: lo dice el logotipo de la cabecera.
+    // Se conserva como texto alternativo para quien use lector de pantalla.
+    $('app-logo').alt = info.realmName;
     $('realm-patch').textContent = info.patch;
     $('app-version').textContent = `v${info.version}`;
     ui.realmlist.textContent = `set realmlist ${info.realmlistHost}`;

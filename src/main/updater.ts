@@ -110,8 +110,11 @@ export function setupUpdater(emit: Send) {
   });
 
   // Un respiro tras el arranque para no competir por la red con la
-  // comprobación del cliente, que es lo que el jugador está esperando.
-  setTimeout(() => void check(false), 8000);
+  // comprobación del cliente, que es lo que el jugador está esperando. Dos
+  // segundos y medio, no ocho: con ocho, quien abría el launcher y pulsaba
+  // «Jugar» de inmediato se iba al juego sin llegar a enterarse de que había
+  // una versión nueva esperándole.
+  setTimeout(() => void check(false), 2500);
   timer = setInterval(() => void check(false), RECHECK_MS);
 }
 

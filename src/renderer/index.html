@@ -10,10 +10,15 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <!-- El arte va como elemento, no como fondo de CSS: así se puede anclar a
+         la derecha y dejar libre el lado izquierdo, que es donde está el hueco
+         oscuro de la ilustración y donde cae todo el contenido. -->
+    <img class="backdrop" src="assets/backdrop.jpg" alt="" aria-hidden="true" />
+    <div class="scrim" aria-hidden="true"></div>
+
     <header class="titlebar">
       <div class="brand">
-        <span class="mark" aria-hidden="true">❉</span>
-        <span class="name" id="realm-name">Frosthold</span>
+        <img class="logo" id="app-logo" src="assets/logo.png" alt="Frosthold" />
         <span class="patch" id="realm-patch">3.3.5a</span>
         <span class="version" id="app-version"></span>
       </div>
@@ -23,41 +28,66 @@
       </div>
     </header>
 
+    <div class="update" id="update" hidden>
+      <span class="update-text" id="update-text" role="status" aria-live="polite"></span>
+      <button id="btn-update" class="update-action" hidden>Reiniciar e instalar</button>
+    </div>
+
     <main>
-      <div class="update" id="update" hidden>
-        <span class="update-text" id="update-text" role="status" aria-live="polite"></span>
-        <button id="btn-update" class="update-action" hidden>Reiniciar e instalar</button>
-      </div>
-
-      <section class="stage">
-        <div class="realm-state">
-          <span class="dot" id="state-dot" data-state="unknown"></span>
-          <span class="realm-state-text">
-            <span id="state-label" role="status" aria-live="polite">Consultando el reino…</span>
-            <!-- La edad de la lectura va siempre a la vista: un dato viejo se
-                 declara viejo, nunca se enseña como si fuera de ahora. -->
-            <small id="state-age" class="age"></small>
-          </span>
-        </div>
-
-        <dl class="metrics" id="metrics">
-          <div><dt>Conectados</dt><dd id="m-players">—</dd></div>
-          <div><dt>Cuentas</dt><dd id="m-accounts">—</dd></div>
-          <div><dt>En pie</dt><dd id="m-uptime">—</dd></div>
-        </dl>
-      </section>
-
-      <section class="panel">
-        <div class="row">
-          <div class="field">
-            <label for="install-path">Carpeta del juego</label>
-            <output id="install-path" class="path">Sin elegir</output>
+      <!-- Columna izquierda: todo el contenido cabe en el hueco oscuro del
+           arte, para no tapar al personaje. -->
+      <div class="column">
+        <section class="frame realm">
+          <div class="realm-state">
+            <span class="dot" id="state-dot" data-state="unknown"></span>
+            <span class="realm-state-text">
+              <span id="state-label" role="status" aria-live="polite">Consultando el reino…</span>
+              <!-- La edad de la lectura va siempre a la vista: un dato viejo se
+                   declara viejo, nunca se enseña como si fuera de ahora. -->
+              <small id="state-age" class="age"></small>
+            </span>
           </div>
-          <button id="btn-choose" class="ghost">Elegir…</button>
-        </div>
 
-        <p id="client-note" class="note" role="status" aria-live="polite"></p>
+          <dl class="metrics" id="metrics">
+            <div><dt>Conectados</dt><dd id="m-players">—</dd></div>
+            <div><dt>Cuentas</dt><dd id="m-accounts">—</dd></div>
+            <div><dt>En pie</dt><dd id="m-uptime">—</dd></div>
+          </dl>
+        </section>
 
+        <section class="frame panel">
+          <div class="row">
+            <div class="field">
+              <label for="install-path">Carpeta del juego</label>
+              <output id="install-path" class="path">Sin elegir</output>
+            </div>
+            <button id="btn-choose" class="ghost">Elegir…</button>
+          </div>
+
+          <p id="client-note" class="note" role="status" aria-live="polite"></p>
+
+          <p id="warning" class="warn" role="status" aria-live="polite" hidden></p>
+          <p id="error" class="error" role="alert" hidden></p>
+
+          <!-- Siempre visible: buscar actualizaciones no depende de tener el
+               juego, y las dos que sí dependen se apagan hasta que haya carpeta. -->
+          <div class="tools" id="tools">
+            <button id="btn-open-dir" class="link" disabled>Abrir la carpeta</button>
+            <span class="sep" aria-hidden="true">·</span>
+            <button id="btn-reset-gfx" class="link" disabled>Restablecer gráficos</button>
+            <span class="sep" aria-hidden="true">·</span>
+            <button id="btn-verify" class="link" disabled>Verificar el cliente</button>
+            <span class="sep" aria-hidden="true">·</span>
+            <button id="btn-check-update" class="link">Buscar actualizaciones</button>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Banda inferior, como en el launcher original: a la izquierda el estado
+         de la descarga, a la derecha el botón grande. -->
+    <footer class="dock">
+      <div class="dock-left">
         <div class="progress" id="progress" hidden>
           <div
             class="bar"
@@ -76,34 +106,19 @@
           </div>
         </div>
 
-        <div class="actions">
-          <button id="btn-primary" class="primary">Elegir la carpeta del juego</button>
-          <button id="btn-stop" class="ghost" hidden>Detener</button>
+        <div class="realmlist">
+          <span>realmlist</span>
+          <code id="realmlist-host">—</code>
         </div>
+      </div>
 
-        <p id="warning" class="warn" role="status" aria-live="polite" hidden></p>
-        <p id="error" class="error" role="alert" hidden></p>
-
-        <!-- Siempre visible: buscar actualizaciones no depende de tener el
-             juego, y las dos que sí dependen se apagan hasta que haya carpeta. -->
-        <div class="tools" id="tools">
-          <button id="btn-open-dir" class="link" disabled>Abrir la carpeta del juego</button>
-          <span class="sep" aria-hidden="true">·</span>
-          <button id="btn-reset-gfx" class="link" disabled>
-            Restablecer gráficos
-          </button>
-          <span class="sep" aria-hidden="true">·</span>
-          <button id="btn-verify" class="link" disabled>Verificar el cliente</button>
-          <span class="sep" aria-hidden="true">·</span>
-          <button id="btn-check-update" class="link">Buscar actualizaciones</button>
-        </div>
-      </section>
-
-      <footer class="realmlist">
-        <span>realmlist</span>
-        <code id="realmlist-host">—</code>
-      </footer>
-    </main>
+      <div class="dock-right">
+        <button id="btn-stop" class="ghost stop" hidden>Detener</button>
+        <button id="btn-primary" class="play">
+          <span class="play-label" id="btn-primary-label">Elegir carpeta</span>
+        </button>
+      </div>
+    </footer>
 
     <script src="app.js"></script>
   </body>

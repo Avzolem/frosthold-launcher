@@ -12,129 +12,263 @@
   --up: #4ade80;
   --down: #f87171;
   --idle: #8a9497;
+
+  /* La familia dorada del botón y de los filos. Tres tonos, no uno: un bisel
+     necesita luz arriba y sombra abajo para leerse como relieve. */
+  --gold-lite: #f6e2a0;
+  --gold-deep: #a97c22;
+
+  /* Serif del sistema. No hay fuentes externas a propósito: el launcher tiene
+     que verse igual sin conexión, y la política de contenido no deja pedirlas. */
+  --serif: 'Trajan Pro', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
 }
 
 * {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
 }
 
-/* Cualquier `display` de más abajo pisaría el atributo `hidden`, y los
-   elementos que ocultamos desde JavaScript seguirían viéndose. */
+/* Varias piezas se ocultan con el atributo `hidden` desde el guion —el aviso
+   de versión, la barra de progreso, el botón de detener—, y todas ellas tienen
+   un `display` propio en su clase. Una declaración del autor le gana siempre a
+   la hoja del navegador, así que sin esto el atributo no ocultaba nada y la
+   ventana arrancaba con una barra vacía arriba y otra abajo. */
 [hidden] {
   display: none !important;
 }
 
+html,
 body {
-  height: 100vh;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
   display: flex;
   flex-direction: column;
   background: var(--ink);
   color: var(--read);
-  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   font-size: 14px;
-  overflow: hidden;
   user-select: none;
 }
 
-/* ── Barra de título propia (la ventana no tiene marco) ───────────────────── */
+/* ── El arte ────────────────────────────────────────────────────────────── */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* Anclado a la derecha: al estrechar la ventana se recorta por la izquierda,
+     que es el hueco oscuro, y el personaje nunca se pierde. */
+  object-fit: cover;
+  object-position: right center;
+  z-index: -2;
+}
+
+/* Oscurece el lado izquierdo para que el texto se lea sobre cualquier recorte
+   del arte, y hunde los bordes superior e inferior bajo las bandas. */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(100deg, rgba(3, 8, 15, 0.97) 0%, rgba(3, 8, 15, 0.9) 34%, rgba(3, 8, 15, 0.35) 58%, rgba(3, 8, 15, 0.1) 100%),
+    linear-gradient(180deg, rgba(3, 8, 15, 0.85) 0%, transparent 16%, transparent 74%, rgba(3, 8, 15, 0.92) 100%);
+}
+
+/* ── Barra de título ────────────────────────────────────────────────────── */
 
 .titlebar {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 38px;
-  padding: 0 0 0 16px;
-  background: var(--slab);
-  border-bottom: 1px solid var(--line);
+  padding: 10px 8px 10px 18px;
   -webkit-app-region: drag;
 }
 
 .brand {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 12px;
+  min-width: 0;
 }
 
-.mark {
-  color: var(--ice);
-  font-size: 14px;
-}
-
-.name {
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 16px;
-  letter-spacing: 0.08em;
-  color: var(--white);
+.logo {
+  height: 46px;
+  width: auto;
+  /* El logotipo trae su propio resplandor; esto lo asienta sobre el arte. */
+  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.8));
+  -webkit-user-drag: none;
 }
 
 .patch {
   font-size: 11px;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
+  color: var(--gold);
+  opacity: 0.85;
+}
+
+.version {
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
   color: var(--meta);
+  opacity: 0.7;
 }
 
 .window-buttons {
   display: flex;
+  gap: 2px;
   -webkit-app-region: no-drag;
 }
 
 .window-buttons button {
-  width: 44px;
-  height: 38px;
+  width: 38px;
+  height: 30px;
   border: 0;
+  border-radius: 5px;
   background: transparent;
   color: var(--meta);
   font-size: 13px;
   cursor: pointer;
+  font-family: inherit;
 }
 
 .window-buttons button:hover {
-  background: var(--slab-hi);
+  background: rgba(125, 211, 252, 0.12);
   color: var(--white);
 }
 
 #btn-close:hover {
-  background: #7f1d1d;
-  color: #fff;
+  background: rgba(248, 113, 113, 0.2);
+  color: #fecaca;
 }
 
-/* ── Cuerpo ───────────────────────────────────────────────────────────────── */
+/* ── Aviso de versión nueva ─────────────────────────────────────────────── */
+
+.update {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 18px 6px;
+  padding: 9px 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(11, 20, 32, 0.9);
+  font-size: 12.5px;
+  -webkit-app-region: no-drag;
+}
+
+.update[data-phase='ready'] {
+  border-color: var(--ice);
+  background: rgba(125, 211, 252, 0.12);
+}
+
+.update[data-phase='error'] .update-text {
+  color: var(--down);
+}
+
+.update-text {
+  color: var(--read);
+}
+
+.update-action {
+  flex: none;
+  padding: 6px 13px;
+  border-radius: 5px;
+  border: 1px solid var(--ice);
+  background: transparent;
+  color: var(--ice);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.update-action:hover {
+  background: var(--ice);
+  color: var(--ink);
+}
+
+.update-action:disabled {
+  opacity: 0.45;
+  cursor: default;
+  background: transparent;
+  color: var(--ice);
+}
+
+/* ── Cuerpo ─────────────────────────────────────────────────────────────── */
 
 main {
   flex: 1;
   min-height: 0;
-  /* Con el escalado de Windows al 150 % la ventana puede quedarse en 460 px de
-     alto útil. Antes el contenido sobrante se cortaba sin más —incluido el
-     botón de «Jugar»—; ahora la zona de contenido se desplaza. */
-  overflow-y: auto;
   display: flex;
-  flex-direction: column;
-  gap: 18px;
-  padding: 22px 26px;
-  /* Cielo nocturno sin una sola imagen: dos halos fríos sobre el fondo. */
-  background:
-    radial-gradient(120% 70% at 15% 0%, rgba(59, 130, 246, 0.16), transparent 60%),
-    radial-gradient(90% 60% at 90% 10%, rgba(125, 211, 252, 0.1), transparent 55%),
-    var(--ink);
+  padding: 4px 18px 0;
+  overflow: hidden;
 }
 
-.stage {
+.column {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
+  flex-direction: column;
+  gap: 12px;
+  width: min(520px, 62%);
+  min-width: 0;
+  overflow-y: auto;
+  padding-bottom: 12px;
 }
+
+/* Marco con esquinas doradas. Es la pieza que da el aire del launcher
+   original sin usar ni un solo recurso suyo: dos capas de degradado para el
+   relieve y cuatro escuadras dibujadas con bordes. */
+.frame {
+  position: relative;
+  padding: 15px 17px;
+  border: 1px solid rgba(200, 164, 74, 0.22);
+  border-radius: 3px;
+  background:
+    linear-gradient(180deg, rgba(16, 28, 43, 0.92), rgba(8, 15, 25, 0.94));
+  box-shadow:
+    inset 0 1px 0 rgba(246, 226, 160, 0.07),
+    0 6px 22px rgba(0, 0, 0, 0.5);
+}
+
+.frame::before,
+.frame::after {
+  content: '';
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  border: 1px solid rgba(200, 164, 74, 0.55);
+  pointer-events: none;
+}
+
+.frame::before {
+  top: -1px;
+  left: -1px;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.frame::after {
+  bottom: -1px;
+  right: -1px;
+  border-left: 0;
+  border-top: 0;
+}
+
+/* ── Estado del reino ───────────────────────────────────────────────────── */
 
 .realm-state {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
-  font-size: 15px;
   color: var(--white);
-  min-width: 0;
+  font-size: 15px;
 }
 
 .realm-state-text {
@@ -144,17 +278,9 @@ main {
   min-width: 0;
 }
 
-/* La edad de la lectura. Va en gris de metadato mientras el dato es reciente y
-   se enciende cuando deja de serlo: el objetivo es que nadie confunda una
-   cifra de hace media hora con una de ahora. */
 .age {
   font-size: 11px;
-  line-height: 1.3;
   color: var(--meta);
-}
-
-.age.stale {
-  color: var(--gold);
 }
 
 .dot {
@@ -162,66 +288,54 @@ main {
   height: 9px;
   border-radius: 50%;
   background: var(--idle);
-  box-shadow: 0 0 0 4px rgba(138, 148, 151, 0.14);
+  flex: none;
+  margin-top: 6px;
 }
 
 .dot[data-state='up'] {
   background: var(--up);
-  box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.16);
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.6);
 }
 
 .dot[data-state='down'] {
   background: var(--down);
-  box-shadow: 0 0 0 4px rgba(248, 113, 113, 0.16);
+  box-shadow: 0 0 10px rgba(248, 113, 113, 0.5);
 }
 
 .metrics {
-  display: flex;
-  gap: 26px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 14px 0 0;
+  padding-top: 13px;
+  border-top: 1px solid rgba(200, 164, 74, 0.15);
 }
 
 .metrics div {
-  text-align: right;
+  min-width: 0;
 }
 
 .metrics dt {
   font-size: 10px;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
   color: var(--meta);
-  margin-bottom: 3px;
 }
 
 .metrics dd {
-  font-size: 20px;
-  font-weight: 600;
+  margin: 3px 0 0;
+  font-size: 21px;
+  font-weight: 700;
   color: var(--gold);
   font-variant-numeric: tabular-nums;
 }
 
-/* El dorado es para los datos que existen. Un hueco no se anuncia. */
-.metrics dd.empty {
-  color: var(--meta);
-  font-weight: 400;
-}
-
-/* ── Panel ────────────────────────────────────────────────────────────────── */
-
-.panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 20px;
-  background: rgba(11, 20, 32, 0.82);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-}
+/* ── Carpeta del juego ──────────────────────────────────────────────────── */
 
 .row {
   display: flex;
   align-items: flex-end;
-  gap: 12px;
+  gap: 10px;
 }
 
 .field {
@@ -232,7 +346,7 @@ main {
 .field label {
   display: block;
   font-size: 10px;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
   color: var(--meta);
   margin-bottom: 6px;
@@ -240,16 +354,18 @@ main {
 
 .path {
   display: block;
-  padding: 9px 12px;
-  background: var(--ink);
+  padding: 9px 11px;
+  background: rgba(3, 8, 15, 0.75);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 4px;
   font-family: Consolas, 'Courier New', monospace;
   font-size: 12px;
   color: var(--read);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  direction: rtl;
+  text-align: left;
   user-select: text;
 }
 
@@ -258,6 +374,7 @@ main {
   line-height: 1.5;
   color: var(--meta);
   min-height: 19px;
+  margin: 11px 0 0;
 }
 
 .note.bad {
@@ -268,75 +385,31 @@ main {
   color: var(--up);
 }
 
-/* ── Progreso ─────────────────────────────────────────────────────────────── */
-
-.progress {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
+.warn,
+.error {
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 9px 0 0;
 }
 
-.bar {
-  height: 7px;
-  background: var(--ink);
-  border: 1px solid var(--line);
-  border-radius: 99px;
-  overflow: hidden;
+.warn {
+  color: var(--gold);
 }
 
-.bar span {
-  display: block;
-  height: 100%;
-  width: 0;
-  background: linear-gradient(90deg, var(--blue), var(--ice));
-  transition: width 0.25s linear;
+.error {
+  color: var(--down);
 }
 
-.progress-meta {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11.5px;
-  color: var(--meta);
-  font-variant-numeric: tabular-nums;
-}
+/* ── Botones ────────────────────────────────────────────────────────────── */
 
-/* ── Acciones ─────────────────────────────────────────────────────────────── */
-
-.actions {
-  margin-top: auto;
-  display: flex;
-  gap: 10px;
-}
-
-button.primary,
 button.ghost {
-  padding: 11px 20px;
-  border-radius: 6px;
-  font-size: 13.5px;
+  padding: 9px 17px;
+  border-radius: 4px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
-}
-
-button.primary {
-  flex: 1;
-  border: 0;
-  background: var(--blue);
-  color: #fff;
-}
-
-button.primary:hover:not(:disabled) {
-  background: #2f6fd8;
-}
-
-button.primary:disabled {
-  background: var(--slab-hi);
-  color: var(--meta);
-  cursor: default;
-}
-
-button.ghost {
-  background: transparent;
+  background: rgba(11, 20, 32, 0.85);
   border: 1px solid var(--line);
   color: var(--read);
 }
@@ -346,39 +419,117 @@ button.ghost:hover {
   color: var(--white);
 }
 
-button:focus-visible {
-  outline: 2px solid var(--ice);
-  outline-offset: 2px;
+button.ghost:disabled {
+  opacity: 0.45;
+  cursor: default;
+  border-color: var(--line);
+  color: var(--meta);
 }
 
-.error {
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: var(--down);
-  background: rgba(248, 113, 113, 0.08);
-  border: 1px solid rgba(248, 113, 113, 0.3);
-  border-radius: 6px;
-  padding: 9px 12px;
+.tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 13px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(200, 164, 74, 0.13);
 }
 
-/* Avisos que no impiden seguir: van en el dorado de jerarquía, no en el rojo
-   del estado del reino. El rojo significa «esto está parado». */
-.warn {
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: var(--gold);
-  background: rgba(251, 191, 36, 0.07);
-  border: 1px solid rgba(251, 191, 36, 0.25);
-  border-radius: 6px;
-  padding: 9px 12px;
+.tools .sep {
+  color: var(--line);
+  font-size: 12px;
 }
 
-/* ── Pie ──────────────────────────────────────────────────────────────────── */
+button.link {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--meta);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--line);
+}
+
+button.link:hover {
+  color: var(--ice);
+  text-decoration-color: var(--ice);
+}
+
+button.link:disabled {
+  opacity: 0.5;
+  cursor: default;
+  text-decoration: none;
+}
+
+/* ── Banda inferior ─────────────────────────────────────────────────────── */
+
+.dock {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 18px 16px;
+  background: linear-gradient(180deg, transparent, rgba(3, 8, 15, 0.9) 40%);
+  border-top: 1px solid rgba(200, 164, 74, 0.14);
+}
+
+.dock-left {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dock-right {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bar {
+  height: 9px;
+  background: rgba(3, 8, 15, 0.85);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.bar span {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #2563eb, var(--ice));
+  box-shadow: 0 0 12px rgba(125, 211, 252, 0.5);
+  transition: width 0.3s ease;
+}
+
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11.5px;
+  color: var(--meta);
+  font-variant-numeric: tabular-nums;
+}
 
 .realmlist {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   font-size: 10px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -394,122 +545,133 @@ button:focus-visible {
   user-select: text;
 }
 
-/* Utilidades de la carpeta del juego. Van discretas: se usan cuando algo va
-   mal, no en el camino normal de "elegir carpeta, descargar, jugar". */
-.tools {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-}
-.tools .sep {
-  color: var(--line);
-  font-size: 12px;
-}
-button.link {
-  background: none;
-  border: 0;
-  padding: 0;
-  font-family: inherit;
-  font-size: 12.5px;
-  color: var(--meta);
+/* ── El botón grande ────────────────────────────────────────────────────── */
+
+/* Recreado entero con degradados y filos. El original de Blizzard es una
+   imagen suya y no se usa aquí: lo que se copia es la IDEA —bloque ancho,
+   bisel dorado, letra serif con brillo— no su material. */
+.play {
+  position: relative;
+  min-width: 178px;
+  padding: 17px 30px;
+  border-radius: 4px;
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  text-decoration-color: var(--line);
+  font-family: var(--serif);
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold-lite);
+  border: 1px solid var(--gold-deep);
+  background:
+    linear-gradient(180deg, rgba(38, 62, 92, 0.96) 0%, rgba(16, 30, 48, 0.98) 48%, rgba(9, 18, 31, 0.98) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(246, 226, 160, 0.35),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.6),
+    inset 0 0 26px rgba(125, 211, 252, 0.09),
+    0 4px 16px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 0 14px rgba(251, 191, 36, 0.45), 0 1px 2px rgba(0, 0, 0, 0.9);
+  transition:
+    box-shadow 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease;
 }
-button.link:hover {
-  color: var(--ice);
-  text-decoration-color: var(--ice);
+
+/* Las dos escuadras doradas de las esquinas, como en los marcos. */
+.play::before,
+.play::after {
+  content: '';
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border: 1px solid rgba(246, 226, 160, 0.6);
+  pointer-events: none;
 }
-button.link:disabled {
-  opacity: 0.5;
+
+.play::before {
+  top: 3px;
+  left: 3px;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.play::after {
+  bottom: 3px;
+  right: 3px;
+  border-left: 0;
+  border-top: 0;
+}
+
+.play:hover:not(:disabled) {
+  color: #fff6d8;
+  border-color: var(--gold);
+  box-shadow:
+    inset 0 1px 0 rgba(246, 226, 160, 0.5),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.6),
+    inset 0 0 34px rgba(125, 211, 252, 0.16),
+    0 0 24px rgba(251, 191, 36, 0.28),
+    0 4px 18px rgba(0, 0, 0, 0.6);
+}
+
+.play:active:not(:disabled) {
+  translate: 0 1px;
+}
+
+.play:disabled {
   cursor: default;
-  text-decoration: none;
+  color: #8d8a7a;
+  border-color: #3d3a2c;
+  text-shadow: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 3px 12px rgba(0, 0, 0, 0.5);
 }
 
-/* Aviso de versión nueva del launcher. Ocupa el ancho por encima de todo
-   porque es lo único de la ventana que caduca: si no se ve, no sirve. */
-.update {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 9px 16px;
-  background: var(--slab-hi);
-  border-bottom: 1px solid var(--line);
-  font-size: 12.5px;
-}
-.update[data-phase='ready'] {
-  background: rgba(125, 211, 252, 0.1);
-  border-bottom-color: var(--ice);
-}
-.update[data-phase='error'] .update-text {
-  color: var(--down);
-}
-.update-text {
-  color: var(--read);
-}
-.update-action {
-  flex: none;
-  padding: 6px 13px;
-  border-radius: 5px;
-  border: 1px solid var(--ice);
-  background: transparent;
-  color: var(--ice);
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.update-action:hover {
-  background: var(--ice);
-  color: var(--ink);
-}
-.update-action:disabled {
-  opacity: 0.45;
-  cursor: default;
-  background: transparent;
-  color: var(--ice);
-}
-.version {
-  font-size: 11px;
-  /* Antes usaba var(--line), el color de los bordes: sobre el fondo de la barra
-     de título era prácticamente ilegible, y la versión instalada es justo el
-     dato que a alguien le van a pedir cuando algo falle. */
-  color: var(--meta);
-  letter-spacing: 0.03em;
+.play:disabled::before,
+.play:disabled::after {
+  border-color: rgba(141, 138, 122, 0.35);
 }
 
-/* ── Ventanas cortas o muy escaladas ──────────────────────────────────────── */
-
-@media (max-height: 600px) {
-  main {
-    gap: 12px;
-    padding: 14px 18px;
-  }
-  .panel {
-    gap: 11px;
-    padding: 14px;
-  }
-  .metrics dd {
-    font-size: 17px;
-  }
-  .update {
-    padding: 7px 14px;
-  }
+/* Mientras descarga, el botón deja de ser el protagonista. */
+.play.busy {
+  font-size: 15px;
+  letter-spacing: 0.08em;
 }
+
+button.stop {
+  padding: 12px 16px;
+}
+
+/* ── Ventanas estrechas ─────────────────────────────────────────────────── */
 
 @media (max-width: 860px) {
-  .stage {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+  .column {
+    width: 100%;
   }
+
+  /* Con poco ancho, el arte estorba más de lo que aporta. */
+  .scrim {
+    background: linear-gradient(180deg, rgba(3, 8, 15, 0.94), rgba(3, 8, 15, 0.97));
+  }
+
+  .play {
+    min-width: 132px;
+    padding: 14px 20px;
+    font-size: 18px;
+  }
+}
+
+@media (max-height: 560px) {
+  .logo {
+    height: 34px;
+  }
+
   .metrics {
-    gap: 18px;
+    margin-top: 10px;
+    padding-top: 9px;
   }
-  .metrics div {
-    text-align: left;
+
+  .metrics dd {
+    font-size: 17px;
   }
 }
