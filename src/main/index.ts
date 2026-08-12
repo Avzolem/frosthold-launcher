@@ -6,7 +6,13 @@ import { DownloadManager } from './download-manager';
 import { InstallManager } from './install-manager';
 import { ProcessManager } from './process-manager';
 import { StatusManager } from './status-manager';
-import { setupUpdater } from './updater';
+import {
+  check as checkUpdates,
+  getUpdaterState,
+  install as installUpdate,
+  setupUpdater,
+  stopUpdater,
+} from './updater';
 import type { Manifest, ManifestFile } from '../shared/types';
 
 const CONFIG = JSON.parse(
@@ -205,6 +211,22 @@ function registerIpc() {
     return shell.openExternal(url);
   });
 
+  ipcMain.handle('updater:state', () => getUpdaterState());
+  ipcMain.handle('updater:check', () => checkUpdates(true));
+
+  ipcMain.handle('updater:install', () => {
+    // Instalar cierra el launcher. Con el cliente bajando, eso corta 16 GB a
+    // medias: se reanudan solos al volver, pero nadie espera que pulsar
+    // «actualizar» detenga su descarga, así que se avisa en vez de hacerlo.
+    if (downloads.isRunning()) {
+      throw new Error(
+        'Hay una descarga del juego en curso. Espera a que termine o deténla antes de actualizar.'
+      );
+    }
+    installUpdate();
+    return { installing: true };
+  });
+
   ipcMain.on('window:minimize', () => win?.minimize());
   ipcMain.on('window:close', () => win?.close());
 }
@@ -238,6 +260,7 @@ if (!app.requestSingleInstanceLock()) {
 
   app.on('window-all-closed', () => {
     status.stop();
+    stopUpdater();
     app.quit();
   });
 }

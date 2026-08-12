@@ -154,6 +154,11 @@ export class DownloadManager extends EventEmitter {
     }
   }
 
+  /** Hay una descarga del cliente en curso. */
+  isRunning(): boolean {
+    return this.abort !== null;
+  }
+
   stop() {
     this.abort?.abort();
   }

@@ -39,6 +39,12 @@ const api = {
     status: () => ipcRenderer.invoke('realm:status'),
   },
 
+  updater: {
+    state: () => ipcRenderer.invoke('updater:state'),
+    check: () => ipcRenderer.invoke('updater:check'),
+    install: () => ipcRenderer.invoke('updater:install'),
+  },
+
   openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
 
   window: {
@@ -55,9 +61,10 @@ const api = {
       'download:error',
       'game:state',
       'realm:status',
-      'updater:available',
-      'updater:progress',
-      'updater:ready',
+      // Un solo canal con el estado completo. Los tres de antes
+      // (available/progress/ready) obligaban a la interfaz a reconstruir la
+      // fase juntando avisos sueltos, y si se perdía uno se quedaba desfasada.
+      'updater:state',
     ];
     if (!allowed.includes(channel)) return () => {};
     const handler = (_e: unknown, payload: unknown) => cb(payload);

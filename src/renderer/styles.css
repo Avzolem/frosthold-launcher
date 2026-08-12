@@ -382,3 +382,53 @@ button.link:disabled {
   cursor: default;
   text-decoration: none;
 }
+
+/* Aviso de versión nueva del launcher. Ocupa el ancho por encima de todo
+   porque es lo único de la ventana que caduca: si no se ve, no sirve. */
+.update {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 16px;
+  background: var(--slab-hi);
+  border-bottom: 1px solid var(--line);
+  font-size: 12.5px;
+}
+.update[data-phase='ready'] {
+  background: rgba(125, 211, 252, 0.1);
+  border-bottom-color: var(--ice);
+}
+.update[data-phase='error'] .update-text {
+  color: var(--down);
+}
+.update-text {
+  color: var(--read);
+}
+.update-action {
+  flex: none;
+  padding: 6px 13px;
+  border-radius: 5px;
+  border: 1px solid var(--ice);
+  background: transparent;
+  color: var(--ice);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.update-action:hover {
+  background: var(--ice);
+  color: var(--ink);
+}
+.update-action:disabled {
+  opacity: 0.45;
+  cursor: default;
+  background: transparent;
+  color: var(--ice);
+}
+.version {
+  font-size: 11px;
+  color: var(--line);
+  letter-spacing: 0.03em;
+}

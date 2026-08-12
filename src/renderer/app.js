@@ -23,6 +23,10 @@ const ui = {
   tools: $('tools'),
   openDir: $('btn-open-dir'),
   resetGfx: $('btn-reset-gfx'),
+  checkUpdate: $('btn-check-update'),
+  update: $('update'),
+  updateText: $('update-text'),
+  updateAction: $('btn-update'),
 };
 
 /** Qué puede hacer el botón grande en cada momento. */
@@ -87,7 +91,8 @@ function paintStatus(s) {
 async function useDir(dir) {
   installDir = dir;
   ui.path.textContent = dir;
-  ui.tools.hidden = false;
+  ui.openDir.disabled = false;
+  ui.resetGfx.disabled = false;
   await frosthold.config.set({ installDir: dir });
 
   const check = await frosthold.install.inspect(dir);
@@ -203,6 +208,70 @@ ui.resetGfx.addEventListener('click', async () => {
   }
 });
 
+// ── Actualización del launcher ──────────────────────────────────────────────
+
+/**
+ * Una sola función pinta la barra a partir del estado completo. La alternativa
+ * —ir reaccionando a avisos sueltos— deja la interfaz desfasada en cuanto se
+ * pierde uno, y aquí se pierde el primero siempre: llega antes de que esta
+ * ventana termine de cargar.
+ */
+function paintUpdate(s) {
+  if (!s) return;
+  ui.update.dataset.phase = s.phase;
+  ui.updateAction.hidden = s.phase !== 'ready';
+  ui.checkUpdate.disabled = s.phase === 'checking';
+
+  const textos = {
+    checking: 'Buscando una versión nueva del launcher…',
+    downloading: `Descargando el launcher ${s.version ?? ''} · ${s.percent}%`,
+    ready: `El launcher ${s.version ?? ''} está listo para instalarse.`,
+    uptodate: 'El launcher está al día.',
+    error: s.message,
+    unsupported: s.message,
+  };
+
+  const texto = textos[s.phase];
+  // En reposo la barra desaparece: no vale la pena gastar una franja de la
+  // ventana para decir que no pasa nada.
+  ui.update.hidden = !texto || s.phase === 'unsupported';
+  ui.updateText.textContent = texto ?? '';
+
+  // «Al día» es una respuesta a una pregunta, no un estado permanente.
+  if (s.phase === 'uptodate') {
+    clearTimeout(paintUpdate.timer);
+    paintUpdate.timer = setTimeout(() => {
+      if (ui.update.dataset.phase === 'uptodate') ui.update.hidden = true;
+    }, 6000);
+  }
+}
+
+ui.checkUpdate.addEventListener('click', async () => {
+  ui.update.hidden = false;
+  ui.updateText.textContent = 'Buscando una versión nueva del launcher…';
+  ui.checkUpdate.disabled = true;
+  try {
+    paintUpdate(await frosthold.updater.check());
+  } finally {
+    ui.checkUpdate.disabled = false;
+  }
+});
+
+ui.updateAction.addEventListener('click', async () => {
+  showError('');
+  ui.updateAction.disabled = true;
+  try {
+    await frosthold.updater.install();
+    ui.updateText.textContent = 'Reiniciando para instalar…';
+  } catch (err) {
+    // El caso real: hay 16 GB del juego bajando y no conviene cortarlos.
+    showError(err.message ?? String(err));
+    ui.updateAction.disabled = false;
+  }
+});
+
+frosthold.on('updater:state', paintUpdate);
+
 $('btn-min').addEventListener('click', () => frosthold.window.minimize());
 $('btn-close').addEventListener('click', () => frosthold.window.close());
 
@@ -249,9 +318,13 @@ frosthold.on('realm:status', paintStatus);
   const info = await frosthold.info();
   $('realm-name').textContent = info.realmName;
   $('realm-patch').textContent = info.patch;
+  $('app-version').textContent = `v${info.version}`;
   ui.realmlist.textContent = `set realmlist ${info.realmlistHost}`;
 
   paintStatus(await frosthold.realm.status());
+  // El estado se pide además de escucharse: la primera comprobación puede
+  // haber terminado antes de que esta ventana estuviera lista para oírla.
+  paintUpdate(await frosthold.updater.state());
 
   const cfg = await frosthold.config.get();
   if (cfg.installDir) {

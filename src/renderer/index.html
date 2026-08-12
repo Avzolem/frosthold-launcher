@@ -15,6 +15,7 @@
         <span class="mark" aria-hidden="true">❉</span>
         <span class="name" id="realm-name">Frosthold</span>
         <span class="patch" id="realm-patch">3.3.5a</span>
+        <span class="version" id="app-version"></span>
       </div>
       <div class="window-buttons">
         <button id="btn-min" title="Minimizar" aria-label="Minimizar">—</button>
@@ -23,6 +24,11 @@
     </header>
 
     <main>
+      <div class="update" id="update" hidden>
+        <span class="update-text" id="update-text"></span>
+        <button id="btn-update" class="update-action" hidden>Reiniciar e instalar</button>
+      </div>
+
       <section class="stage">
         <div class="realm-state">
           <span class="dot" id="state-dot" data-state="unknown"></span>
@@ -62,12 +68,16 @@
 
         <p id="error" class="error" hidden></p>
 
-        <div class="tools" id="tools" hidden>
-          <button id="btn-open-dir" class="link">Abrir la carpeta del juego</button>
+        <!-- Siempre visible: buscar actualizaciones no depende de tener el
+             juego, y las dos que sí dependen se apagan hasta que haya carpeta. -->
+        <div class="tools" id="tools">
+          <button id="btn-open-dir" class="link" disabled>Abrir la carpeta del juego</button>
           <span class="sep" aria-hidden="true">·</span>
-          <button id="btn-reset-gfx" class="link">
+          <button id="btn-reset-gfx" class="link" disabled>
             Restablecer gráficos
           </button>
+          <span class="sep" aria-hidden="true">·</span>
+          <button id="btn-check-update" class="link">Buscar actualizaciones</button>
         </div>
       </section>
 
