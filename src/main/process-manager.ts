@@ -13,31 +13,52 @@ export type GameState = 'stopped' | 'running';
 const NOMBRES = ['Frosthold.exe', 'Wow.exe', 'WoW.exe', 'wow.exe'];
 
 /**
- * Devuelve los procesos abiertos cuyo ejecutable coincide con alguno de
- * `nombres`. Se inyecta para poder probar la lógica sin depender del sistema.
+ * Devuelve la RUTA COMPLETA de cada proceso abierto cuyo ejecutable se llame
+ * como alguno de `nombres`. Se inyecta para poder probar sin el sistema.
+ *
+ * La ruta y no el nombre, y la diferencia no es cosmética: el launcher
+ * instalado TAMBIÉN se llama Frosthold.exe —lo nombra `productName` de
+ * electron-builder— igual que el ejecutable del juego después de renombrarlo.
+ * Buscando por nombre, el launcher se encontraba a sí mismo y daba el juego por
+ * abierto siempre. Con la ruta se distinguen, y de paso se resuelve solo el
+ * caso de Electron, que abre varios procesos —principal, pintado, GPU— todos
+ * con el mismo nombre y la misma ruta.
  */
 export type ProcessLister = (nombres: string[]) => Promise<string[]>;
 
 /** Lista real del sistema. Fuera de Windows no hay cliente que buscar. */
 export const listarProcesosDelSistema: ProcessLister = async (nombres) => {
   if (process.platform !== 'win32') return [];
-  const encontrados = new Set<string>();
-  for (const nombre of nombres) {
-    try {
-      // /NH quita la cabecera; el filtro lo aplica el propio tasklist, así que
-      // no hace falta interpretar toda la lista de procesos del equipo.
-      const { stdout } = await run(
-        'tasklist',
-        ['/NH', '/FI', `IMAGENAME eq ${nombre}`],
-        { windowsHide: true, timeout: 8000 }
-      );
-      if (stdout.toLowerCase().includes(nombre.toLowerCase())) encontrados.add(nombre);
-    } catch {
-      // Si tasklist no está disponible, se responde «no sé» en vez de «no hay»:
-      // quien decide qué hacer con eso es quien llama.
-    }
+
+  // Se pregunta por todos los nombres de una vez: una sola llamada en vez de
+  // cuatro, y en Windows los nombres de archivo no distinguen mayúsculas, así
+  // que las variantes de Wow.exe colapsan solas.
+  const filtro = [...new Set(nombres.map((n) => n.toLowerCase()))]
+    .map((n) => `Name='${n.replace(/'/g, "''")}'`)
+    .join(' or ');
+
+  try {
+    const { stdout } = await run(
+      'powershell',
+      [
+        '-NoProfile',
+        '-NonInteractive',
+        '-Command',
+        `Get-CimInstance Win32_Process -Filter "${filtro}" | ForEach-Object { $_.ExecutablePath }`,
+      ],
+      { windowsHide: true, timeout: 10_000 }
+    );
+    return stdout
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+  } catch {
+    // Sin PowerShell no se puede saber la ruta, y sin la ruta no se puede
+    // distinguir el juego del propio launcher. Se responde «no hay» a
+    // propósito: ver `isGameRunning` para por qué esa es la respuesta menos
+    // dañina cuando no se sabe.
+    return [];
   }
-  return [...encontrados];
 };
 
 export class ProcessManager extends EventEmitter {
@@ -59,23 +80,52 @@ export class ProcessManager extends EventEmitter {
   }
 
   /**
-   * ¿Hay un cliente abierto, lo haya lanzado quien lo haya lanzado?
+   * ¿Hay un cliente abierto en `installDir`, lo haya lanzado quien lo haya
+   * lanzado?
    *
    * El launcher solo sabía de los procesos que arrancaba él. Quien abría el
    * juego desde el acceso directo del escritorio y luego pulsaba «Restablecer
    * gráficos» recibía un «listo» rotundo, y al cerrar el juego el cliente
-   * reescribía Config.wtf y se llevaba por delante el arreglo. Justo el fallo
-   * que esa función existe para evitar.
+   * reescribía Config.wtf y se llevaba por delante el arreglo.
+   *
+   * Se compara la RUTA, nunca el nombre. El launcher instalado se llama
+   * Frosthold.exe igual que el juego, así que buscar por nombre lo encontraba a
+   * él y daba el juego por abierto SIEMPRE: eso dejaba inservibles tanto este
+   * aviso como el botón de jugar, que también pasa por aquí.
+   *
+   * Cuando no se puede saber —sin PowerShell, o sin carpeta que comparar— se
+   * responde que NO. Es deliberado: equivocarse por decir «no está abierto»
+   * cuesta que el cliente pise el arreglo al cerrarse y haya que repetirlo;
+   * equivocarse por decir «sí está abierto» deja al jugador sin poder usar la
+   * función, sin nada que pueda hacer al respecto. El error barato es el
+   * primero.
    */
-  async isGameRunning(): Promise<boolean> {
+  async isGameRunning(installDir?: string): Promise<boolean> {
+    // Lo que lanzó este launcher lo sabemos sin preguntarle al sistema.
     if (this.state === 'running') return true;
-    const vivos = await this.lister(NOMBRES);
-    return vivos.length > 0;
+    if (!installDir) return false;
+
+    const rutas = await this.lister(NOMBRES);
+    if (!rutas.length) return false;
+
+    // Windows no distingue mayúsculas ni la barra que se use al escribir una
+    // ruta, así que se normalizan las dos antes de compararlas.
+    const normal = (p: string) => p.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
+    const carpeta = `${normal(installDir)}/`;
+    const yo = normal(process.execPath);
+
+    return rutas.some((ruta) => {
+      const r = normal(ruta);
+      // El propio launcher y sus procesos hijos comparten ejecutable: caen
+      // todos con esta sola comparación.
+      if (r === yo) return false;
+      return r.startsWith(carpeta);
+    });
   }
 
   async launch(installDir: string, executableName: string): Promise<void> {
     if (this.child) throw new Error('El juego ya está abierto');
-    if (await this.isGameRunning()) {
+    if (await this.isGameRunning(installDir)) {
       throw new Error(
         'El juego ya está abierto. Cámbiate a esa ventana, o ciérrala si se quedó colgada.'
       );

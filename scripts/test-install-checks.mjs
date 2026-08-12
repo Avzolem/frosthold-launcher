@@ -111,11 +111,32 @@ ok((await im.detectLocale(juego, 'enUS')) === 'enUS', 'respeta el idioma preferi
 
 // ── 4. ¿El juego ya está abierto, lo abriera quien lo abriera? ──────────────
 console.log('\n4. Juego abierto por fuera del launcher');
+const exeJuego = join(juego, 'Wow.exe');
+
 const pmVacio = new ProcessManager(async () => []);
-ok((await pmVacio.isGameRunning()) === false, 'sin cliente abierto, dice que no');
-const pmLleno = new ProcessManager(async () => ['Wow.exe']);
-ok((await pmLleno.isGameRunning()) === true,
+ok((await pmVacio.isGameRunning(juego)) === false, 'sin cliente abierto, dice que no');
+
+const pmLleno = new ProcessManager(async () => [exeJuego]);
+ok((await pmLleno.isGameRunning(juego)) === true,
   'detecta un cliente abierto desde el acceso directo, no solo el que lanzó él');
+
+// LA REGRESIÓN DE LA v0.1.6, y por eso esta prueba existe: el launcher
+// instalado se llama Frosthold.exe, igual que el juego después de renombrarlo.
+// Buscando por NOMBRE se encontraba a sí mismo y daba el juego por abierto
+// siempre, lo que dejaba inservibles a la vez «restablecer gráficos» y «jugar».
+const pmYoMismo = new ProcessManager(async () => [process.execPath]);
+ok((await pmYoMismo.isGameRunning(juego)) === false,
+  'el launcher no se confunde consigo mismo aunque comparta nombre con el juego');
+
+// Un cliente de OTRA carpeta tampoco cuenta: no vamos a tocar su Config.wtf.
+const pmOtra = new ProcessManager(async () => [join(tmpdir(), 'otro-wow', 'Wow.exe')]);
+ok((await pmOtra.isGameRunning(juego)) === false,
+  'un cliente de otra carpeta no bloquea el arreglo de esta');
+
+// Sin carpeta con la que comparar no se puede distinguir. Se responde que no:
+// el error barato es tener que repetir el arreglo, no quedarse sin función.
+ok((await pmLleno.isGameRunning()) === false,
+  'sin carpeta que comparar, prefiere no bloquear antes que bloquear de más');
 let lanzo = false;
 try {
   await pmLleno.launch(juego, 'Wow.exe');

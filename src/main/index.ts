@@ -247,8 +247,10 @@ function registerIpc() {
     // exactamente el motivo por el que a la gente "no le funciona" el arreglo
     // manual, así que aquí se corta antes de dar una falsa sensación de éxito.
     // Se mira el sistema, no solo lo que lanzó el launcher: el caso normal es
-    // que el juego se haya abierto desde el acceso directo del escritorio.
-    if (await games.isGameRunning()) {
+    // que el juego se haya abierto desde el acceso directo del escritorio. Se
+    // pasa la carpeta porque la comprobación es POR RUTA — el launcher se llama
+    // igual que el juego y, sin ella, se encontraba a sí mismo.
+    if (await games.isGameRunning(dir)) {
       throw new Error('Cierra el juego antes de restablecer los gráficos.');
     }
 
@@ -334,7 +336,7 @@ function registerIpc() {
 
   ipcMain.handle('game:stop', () => games.stop());
   ipcMain.handle('game:state', () => games.getState());
-  ipcMain.handle('game:running', () => games.isGameRunning());
+  ipcMain.handle('game:running', () => games.isGameRunning(config.get().installDir ?? undefined));
   ipcMain.handle('realm:status', () => status.getLast());
 
   ipcMain.handle('shell:openExternal', (_e, url: string) => {
