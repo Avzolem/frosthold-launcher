@@ -106,6 +106,31 @@ vista: por encima de tres minutos se declara viejo, y por encima de media hora
 se deja de servir la cifra en vez de servirla con una nota al pie. Nunca se
 pinta un cero donde no hubo lectura.
 
+## Ajustes del cliente
+
+Dos casillas opcionales, las dos reversibles desde el mismo sitio.
+
+**Memoria ampliada (4 GB).** El cliente de 3.3.5a es de 32 bits y arranca
+limitado a 2 GB de memoria aunque el equipo tenga treinta y dos. Windows le da
+hasta 4 GB si el ejecutable lleva levantado el bit `IMAGE_FILE_LARGE_ADDRESS_AWARE`
+de su cabecera PE, y eso es exactamente lo que hace esta casilla: **cambia un
+byte**, comprobado en la batería de pruebas. No inyecta código ni añade
+archivos. Rompe la firma digital del ejecutable, cosa inevitable al modificarlo
+y que no afecta a poder jugar.
+
+**Renderizado por Vulkan (DXVK).** Descarga el `d3d9.dll` de 32 bits de la
+última versión publicada de [DXVK](https://github.com/doitsujin/dxvk) y lo pone
+junto al ejecutable, que es donde Windows lo busca antes que el del sistema.
+
+Conviene decirlo sin adornos: **DXVK está hecho para Linux con Wine**. Que
+funcione en Windows es un uso derivado que el proyecto ni documenta ni respalda,
+y no publica requisitos mínimos de tarjeta gráfica. Con una GPU o un controlador
+antiguos, el juego no abrirá; por eso la casilla lo quita igual de fácil.
+
+Un `d3d9.dll` que no haya puesto este launcher **no se toca nunca**: se guarda
+la huella de la que instalamos y, si no cuadra, se declara ajena y se deja donde
+está.
+
 ## Procedencia de los recursos gráficos
 
 `src/renderer/assets/` contiene arte que **no es original de este proyecto**:
@@ -131,5 +156,6 @@ hecho aquí y no depende de ellos.
 - Firma de código. Sin certificado, Windows muestra el aviso de SmartScreen en
   cada instalación (200-400 USD/año).
 - Publicar `manifest.json` y el canal de actualizaciones en el sitio.
+- Rama heredada de DXVK (1.10.x) para tarjetas que no lleguen a la actual.
 - Parche propio de pantalla de inicio y logotipos (MPQ, con StormLib).
 - Soporte de Linux y macOS vía Wine.

@@ -13,6 +13,13 @@ import {
   setupUpdater,
   stopUpdater,
 } from './updater';
+import {
+  aplicarLaa,
+  instalarDxvk,
+  leerDxvk,
+  leerLaa,
+  quitarDxvk,
+} from './client-tweaks';
 import type { Manifest, ManifestFile } from '../shared/types';
 
 const CONFIG = JSON.parse(
@@ -29,7 +36,7 @@ const CONFIG = JSON.parse(
 
 /** Tamaño de diseño de la ventana, en píxeles independientes de la pantalla. */
 const WIN_W = 1000;
-const WIN_H = 640;
+const WIN_H = 760;
 const MIN_W = 760;
 const MIN_H = 520;
 
@@ -342,6 +349,47 @@ function registerIpc() {
   ipcMain.handle('shell:openExternal', (_e, url: string) => {
     if (!/^https?:\/\//i.test(url)) return;
     return shell.openExternal(url);
+  });
+
+  /**
+   * Los dos ajustes opcionales del cliente. Los tres manejadores comparten la
+   * misma cautela: no se toca nada con el juego abierto, porque Windows
+   * bloquea el ejecutable en marcha y porque el cliente reescribe su carpeta
+   * al cerrarse.
+   */
+  async function rutaDelEjecutable(dir: string): Promise<string> {
+    const check = await installs.inspect(dir, CONFIG.executableName);
+    if (!check.executable) throw new Error('No se encontró el ejecutable del juego.');
+    return join(dir, check.executable);
+  }
+
+  async function exigirJuegoCerrado(dir: string) {
+    if (await games.isGameRunning(dir)) {
+      throw new Error('Cierra el juego antes de cambiar los ajustes del cliente.');
+    }
+  }
+
+  ipcMain.handle('tweaks:read', async (_e, dir: string) => {
+    if (!dir) return null;
+    const [laa, dxvk] = await Promise.all([
+      rutaDelEjecutable(dir).then(leerLaa).catch(() => ({
+        aplicable: false,
+        activo: false,
+        motivo: 'No se encontró el ejecutable del juego.',
+      })),
+      leerDxvk(dir),
+    ]);
+    return { laa, dxvk };
+  });
+
+  ipcMain.handle('tweaks:laa', async (_e, dir: string, activar: boolean) => {
+    await exigirJuegoCerrado(dir);
+    return aplicarLaa(await rutaDelEjecutable(dir), activar, dir);
+  });
+
+  ipcMain.handle('tweaks:dxvk', async (_e, dir: string, activar: boolean) => {
+    await exigirJuegoCerrado(dir);
+    return activar ? instalarDxvk(dir) : quitarDxvk(dir);
   });
 
   ipcMain.handle('updater:state', () => getUpdaterState());

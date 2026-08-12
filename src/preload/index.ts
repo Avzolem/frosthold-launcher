@@ -42,6 +42,12 @@ const api = {
     status: () => ipcRenderer.invoke('realm:status'),
   },
 
+  tweaks: {
+    read: (dir: string) => ipcRenderer.invoke('tweaks:read', dir),
+    laa: (dir: string, on: boolean) => ipcRenderer.invoke('tweaks:laa', dir, on),
+    dxvk: (dir: string, on: boolean) => ipcRenderer.invoke('tweaks:dxvk', dir, on),
+  },
+
   updater: {
     state: () => ipcRenderer.invoke('updater:state'),
     check: () => ipcRenderer.invoke('updater:check'),

@@ -70,6 +70,37 @@
           <p id="error" class="error" role="alert" hidden></p>
 
         </section>
+
+        <section class="frame tweaks" id="tweaks" hidden>
+          <h2 class="frame-title">Ajustes del cliente</h2>
+
+          <label class="tweak">
+            <input type="checkbox" id="tw-laa" />
+            <span>
+              <strong>Memoria ampliada (4 GB)</strong>
+              <small
+                >El cliente es de 32 bits y arranca limitado a 2 GB aunque tengas más.
+                Levanta una bandera de su ejecutable para que Windows le deje usar 4 GB.
+                Ayuda en bandas y con muchos complementos.</small
+              >
+            </span>
+          </label>
+
+          <label class="tweak">
+            <input type="checkbox" id="tw-dxvk" />
+            <span>
+              <strong>Renderizado por Vulkan (DXVK)</strong>
+              <small
+                >Traduce Direct3D 9 a Vulkan; suele dar más estabilidad en clientes
+                viejos. <em>Experimental:</em> DXVK está hecho para Linux y su uso en
+                Windows no lo respaldan sus autores. Si el juego deja de abrir, desmarca
+                esto y vuelve a estar como antes.</small
+              >
+            </span>
+          </label>
+
+          <p class="tweak-note" id="tw-note" role="status" aria-live="polite"></p>
+        </section>
       </div>
     </main>
 

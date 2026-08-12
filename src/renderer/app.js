@@ -20,6 +20,10 @@ const ui = {
   action: $('btn-action'),
   actionLabel: $('btn-action-label'),
   play: $('btn-play'),
+  tweaks: $('tweaks'),
+  laa: $('tw-laa'),
+  dxvk: $('tw-dxvk'),
+  twNote: $('tw-note'),
   stop: $('btn-stop'),
   choose: $('btn-choose'),
   error: $('error'),
@@ -165,6 +169,7 @@ async function useDir(dir) {
   ui.path.title = dir;
   ui.openDir.disabled = false;
   ui.resetGfx.disabled = false;
+  void refrescarAjustes();
   ui.verify.disabled = false;
   showError('');
   showWarning('');
@@ -416,6 +421,76 @@ ui.updateAction.addEventListener('click', async () => {
     ui.updateAction.disabled = false;
   }
 });
+
+
+// ── Ajustes del cliente ─────────────────────────────────────────────────────
+
+/**
+ * Las dos casillas reflejan el estado REAL del disco, no lo que el jugador
+ * pulsó: se releen del cliente cada vez. Si un ajuste falla a medias, la
+ * casilla vuelve sola a donde estaba en vez de mentir.
+ */
+async function refrescarAjustes() {
+  if (!installDir) {
+    ui.tweaks.hidden = true;
+    return;
+  }
+  try {
+    const t = await frosthold.tweaks.read(installDir);
+    if (!t) return;
+
+    ui.tweaks.hidden = false;
+    ui.laa.checked = t.laa.activo;
+    ui.laa.disabled = !t.laa.aplicable;
+    ui.dxvk.checked = t.dxvk.instalado;
+    ui.dxvk.disabled = t.dxvk.ajeno;
+
+    const avisos = [];
+    if (t.laa.motivo) avisos.push(`Memoria ampliada: ${t.laa.motivo}`);
+    if (t.dxvk.ajeno) {
+      avisos.push('Hay un d3d9.dll en la carpeta que no puso este launcher, así que no se toca.');
+    } else if (t.dxvk.instalado && t.dxvk.version) {
+      avisos.push(`DXVK ${t.dxvk.version} instalado.`);
+    }
+    ui.twNote.className = 'tweak-note';
+    ui.twNote.textContent = avisos.join(' ');
+  } catch (err) {
+    ui.twNote.className = 'tweak-note bad';
+    ui.twNote.textContent = err.message ?? String(err);
+  }
+}
+
+/** Un mismo camino para las dos casillas: bloquear, aplicar, releer. */
+async function cambiarAjuste(casilla, aplicar, trabajando) {
+  const previo = !casilla.checked;
+  ui.laa.disabled = true;
+  ui.dxvk.disabled = true;
+  ui.twNote.className = 'tweak-note';
+  ui.twNote.textContent = trabajando;
+  try {
+    await aplicar(installDir, casilla.checked);
+    await refrescarAjustes();
+    ui.twNote.className = 'tweak-note good';
+    ui.twNote.textContent = 'Listo. Cierra el juego y vuelve a abrirlo si lo tenías puesto.';
+  } catch (err) {
+    casilla.checked = previo;
+    await refrescarAjustes();
+    ui.twNote.className = 'tweak-note bad';
+    ui.twNote.textContent = err.message ?? String(err);
+  }
+}
+
+ui.laa.addEventListener('change', () =>
+  cambiarAjuste(ui.laa, frosthold.tweaks.laa, 'Cambiando la bandera del ejecutable…')
+);
+
+ui.dxvk.addEventListener('change', () =>
+  cambiarAjuste(
+    ui.dxvk,
+    frosthold.tweaks.dxvk,
+    ui.dxvk.checked ? 'Descargando DXVK…' : 'Quitando DXVK…'
+  )
+);
 
 frosthold.on('updater:state', paintUpdate);
 
