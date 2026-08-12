@@ -2,19 +2,15 @@
   "realmName": "Frosthold",
   "patch": "3.3.5a",
   "build": 12340,
-
   "realmlistHost": "logon.avsolem.com",
   "statusApi": "https://www.avsolem.com/api/wow/status",
   "manifestUrl": "https://www.avsolem.com/wow/manifest.json",
-
   "executableName": "Frosthold.exe",
   "clientLocale": "esMX",
-
   "upstream": {
     "manifestUrl": "https://cdn.wowlatinoamerica.com/manifest.json",
-    "note": "Espejo autorizado por los responsables del origen. Los MPQ del cliente base se sirven desde ahí; todo lo demás sale de nuestro propio alojamiento."
+    "note": "Origen de los MPQ del cliente base. Todo lo demás sale de nuestro propio alojamiento."
   },
-
   "rules": {
     "exclude": [
       "Data/esMX/realmlist.wtf",
@@ -23,6 +19,10 @@
     "rename": {
       "WLA.exe": "Frosthold.exe"
     },
-    "brandTokens": ["wla", "latino", "wowlatinoamerica"]
+    "brandTokens": [
+      "wla",
+      "latino",
+      "wowlatinoamerica"
+    ]
   }
 }
