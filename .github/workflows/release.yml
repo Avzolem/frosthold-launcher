@@ -31,6 +31,13 @@ jobs:
       - name: Generar el manifiesto del cliente
         run: yarn manifest --check
 
+      # `yarn dist` lleva `--publish never`. La configuración de electron-builder
+      # apunta a los releases del repositorio —y tiene que seguir apuntando ahí,
+      # porque de ella sale el `latest.yml` que consulta el actualizador—, pero
+      # publicar lo hace el paso de abajo. Sin el `never`, electron-builder
+      # intentaba publicar por su cuenta y moría con «GitHub Personal Access
+      # Token is not set»: por eso v0.1.4 y v0.1.5 se compilaron y no llegaron
+      # a existir como versión descargable.
       - name: Compilar y empaquetar
         run: yarn dist
         env:
