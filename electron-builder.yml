@@ -39,7 +39,10 @@ nsis:
   # después, a la carpeta que elija el jugador.
   deleteAppDataOnUninstall: false
 
+# Los releases del repositorio son el canal de actualización: ya es donde
+# publica el workflow, y así no hay un servidor aparte que mantener. La URL
+# genérica anterior no existía, de modo que el updater fallaba en silencio.
 publish:
-  provider: generic
-  url: https://avsolem.com/wow/launcher/updates
-  channel: latest
+  provider: github
+  owner: Avzolem
+  repo: frosthold-launcher
