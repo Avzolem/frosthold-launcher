@@ -38,8 +38,26 @@ jobs:
       # intentaba publicar por su cuenta y moría con «GitHub Personal Access
       # Token is not set»: por eso v0.1.4 y v0.1.5 se compilaron y no llegaron
       # a existir como versión descargable.
+      # electron-builder se baja sus propios binarios de GitHub —Electron, NSIS,
+      # winCodeSign— en cada compilación, y esas descargas fallan con `EOF` de
+      # vez en cuando. No es nuestro código: la misma versión compila bien al
+      # rato. Tres intentos con una pausa, para no depender de que alguien
+      # reintente a mano cada vez que GitHub tiene un mal minuto.
       - name: Compilar y empaquetar
-        run: yarn dist
+        shell: bash
+        run: |
+          for intento in 1 2 3; do
+            echo "::group::Intento $intento"
+            if yarn dist; then
+              echo "::endgroup::"
+              exit 0
+            fi
+            echo "::endgroup::"
+            echo "Intento $intento fallido; se reintenta en 20 s."
+            sleep 20
+          done
+          echo "Tres intentos fallidos."
+          exit 1
         env:
           # Sin certificado todavía: que no intente firmar y falle.
           CSC_IDENTITY_AUTO_DISCOVERY: false
