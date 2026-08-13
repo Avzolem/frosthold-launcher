@@ -534,6 +534,7 @@ button.link:disabled {
 .realmlist {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   font-size: 9.5px;
   letter-spacing: 0.14em;
@@ -602,8 +603,9 @@ button.stone:disabled {
 /* La acción del momento: pesa más que las utilidades, sin llegar a competir
    con el botón grande. */
 button.stone.action {
-  padding: 8px 16px;
-  font-size: 13px;
+  margin-left: 10px;
+  padding: 7px 15px;
+  font-size: 12.5px;
   color: var(--gold-lite);
 }
 

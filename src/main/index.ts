@@ -384,7 +384,13 @@ function registerIpc() {
 
   ipcMain.handle('tweaks:laa', async (_e, dir: string, activar: boolean) => {
     await exigirJuegoCerrado(dir);
-    return aplicarLaa(await rutaDelEjecutable(dir), activar, dir);
+    const exe = await rutaDelEjecutable(dir);
+    // La huella que el manifiesto espera para ESTE ejecutable. Se pasa para que
+    // el apunte sepa sobre qué versión se hizo, y así deje de valer solo. Si el
+    // manifiesto no está cargado se aplica igual: el apunte quedará sin base y
+    // el verificador pedirá el archivo de nuevo, que es el lado seguro.
+    const esperada = manifest?.files.find((f) => join(dir, f.path) === exe)?.sha256;
+    return aplicarLaa(exe, activar, dir, esperada);
   });
 
   ipcMain.handle('tweaks:dxvk', async (_e, dir: string, activar: boolean) => {

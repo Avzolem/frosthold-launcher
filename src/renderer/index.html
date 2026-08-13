@@ -138,6 +138,12 @@
           <!-- Aparece solo cuando hay una versión descargada y lista. El aviso
                de que existe lo da la barra de arriba; esto es la acción. -->
           <button id="btn-update" class="stone update-now" hidden>Reiniciar e instalar</button>
+          <!-- La acción del momento: descargar lo que falte, comprobar de nuevo
+               o elegir carpeta. Vive aquí y no junto al PLAY porque la fila de
+               herramientas de la esquina ya llega hasta ahí y se pisaban. -->
+          <button id="btn-action" class="stone action" hidden>
+            <span id="btn-action-label">Elegir carpeta</span>
+          </button>
         </div>
 
         <!-- Las utilidades, con el marco de hielo del launcher original.

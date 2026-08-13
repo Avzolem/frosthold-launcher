@@ -70,7 +70,13 @@ export async function leerLaa(exe: string): Promise<EstadoLaa> {
   return { aplicable: true, activo: (buf.readUInt16LE(pos) & LAA_BIT) !== 0 };
 }
 
-export async function aplicarLaa(exe: string, activar: boolean, carpeta: string): Promise<EstadoLaa> {
+export async function aplicarLaa(
+  exe: string,
+  activar: boolean,
+  carpeta: string,
+  /** Huella que el manifiesto espera para este ejecutable, si se conoce. */
+  huellaDelManifiesto?: string
+): Promise<EstadoLaa> {
   const buf = await readFile(exe);
   const pos = await posicionDeLaBandera(buf);
   if (pos === null) throw new Error('El ejecutable no tiene el formato esperado.');
@@ -95,6 +101,19 @@ export async function aplicarLaa(exe: string, activar: boolean, carpeta: string)
     // mira en programas de usuario, y dejarla como estaba conserva la pista de
     // que el archivo se tocó.
     await writeFile(exe, buf);
+  }
+
+  // El apunte va DESPUÉS de escribir, con la huella real que quedó. Al apagar
+  // la bandera el archivo vuelve a ser el del manifiesto, así que el apunte se
+  // borra en vez de quedarse mintiendo.
+  const relativa = exe.slice(carpeta.length).replace(/^[\\/]+/, '');
+  if (activar && huellaDelManifiesto) {
+    await anotarPatch(carpeta, relativa, {
+      sha256: await huellaDe(exe),
+      base: huellaDelManifiesto,
+    });
+  } else {
+    await anotarPatch(carpeta, relativa, null);
   }
 
   return { aplicable: true, activo: activar };
@@ -247,4 +266,60 @@ export async function tamanoDe(p: string): Promise<number> {
   } catch {
     return 0;
   }
+}
+
+/* ── Registro de lo que modificamos a propósito ─────────────────────────── */
+
+/**
+ * La bandera de memoria ampliada cambia un byte del ejecutable, y con él su
+ * huella. El verificador compara contra el manifiesto, así que ese archivo
+ * pasaba a estar «dañado»: el launcher lo volvía a bajar y al bajarlo borraba
+ * la bandera. Activar, descargar, perderla, repetir.
+ *
+ * Es el mismo fallo que el README describe para el realmlist —un archivo que
+ * nosotros reescribimos no puede verificarse contra el manifiesto— y aquí se
+ * resuelve igual de explícito: se apunta qué archivo tocamos, con qué huella
+ * quedó, y sobre qué huella de manifiesto se hizo.
+ *
+ * `base` es lo que impide que esto se convierta en un agujero: si algún día el
+ * cliente se actualiza de verdad, la huella esperada cambia, el apunte deja de
+ * casar y el archivo se vuelve a bajar como debe. La bandera se pierde en esa
+ * actualización, que es correcto: es un ejecutable nuevo.
+ */
+export interface ApuntePatch {
+  /** Huella que TIENE el archivo después de que lo tocáramos. */
+  sha256: string;
+  /** Huella que el manifiesto esperaba cuando se aplicó. */
+  base: string;
+}
+
+const PATCH_FILE = '.frosthold/patched.json';
+
+export async function leerPatched(carpeta: string): Promise<Record<string, ApuntePatch>> {
+  try {
+    return JSON.parse(await readFile(join(carpeta, PATCH_FILE), 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+async function escribirPatched(carpeta: string, datos: Record<string, ApuntePatch>) {
+  await mkdir(join(carpeta, '.frosthold'), { recursive: true });
+  await writeFile(join(carpeta, PATCH_FILE), JSON.stringify(datos, null, 2));
+}
+
+/** Apunta que un archivo quedó modificado por nosotros, o borra el apunte. */
+export async function anotarPatch(
+  carpeta: string,
+  rutaRelativa: string,
+  apunte: ApuntePatch | null
+): Promise<void> {
+  const datos = await leerPatched(carpeta);
+  if (apunte) datos[rutaRelativa] = apunte;
+  else delete datos[rutaRelativa];
+  await escribirPatched(carpeta, datos);
+}
+
+export async function huellaDe(p: string): Promise<string> {
+  return createHash('sha256').update(await readFile(p)).digest('hex');
 }

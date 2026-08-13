@@ -164,6 +164,45 @@ await writeFile(
 d = await t.leerDxvk(juego);
 ok(d.ajeno === true, 'si la huella no cuadra con la marca, se trata como ajena');
 
+console.log('\n5. La bandera NO puede disparar una redescarga');
+// EL CASO QUE REPORTÓ EL USUARIO: activar la memoria ampliada cambia un byte
+// del ejecutable, su huella deja de casar con el manifiesto, el verificador lo
+// da por dañado y lo vuelve a bajar — y al bajarlo borra la bandera.
+const juego2 = await mkdtemp(join(tmpdir(), 'plan-'));
+const exe2 = join(juego2, 'Frosthold.exe');
+await writeFile(exe2, pe());
+const baseHash = await t.huellaDe(exe2);
+
+const { DownloadManager } = require(join(ROOT, 'dist/main/download-manager.js'));
+const dm = new DownloadManager();
+dm.setInstallDir(juego2);
+const manifiesto = {
+  files: [
+    { path: 'Frosthold.exe', size: (await readFile(exe2)).length, sha256: baseHash, url: 'http://x' },
+  ],
+};
+
+ok((await dm.plan(manifiesto)).length === 0, 'sin tocar nada, no falta nada');
+
+await t.aplicarLaa(exe2, true, juego2, baseHash);
+const tras = await dm.plan(manifiesto);
+ok(tras.length === 0, 'con la bandera puesta TAMPOCO pide volver a bajarlo');
+ok((await t.leerLaa(exe2)).activo === true, 'y la bandera sigue puesta');
+
+// Al apagarla el archivo vuelve al del manifiesto y el apunte se retira.
+await t.aplicarLaa(exe2, false, juego2, baseHash);
+ok((await dm.plan(manifiesto)).length === 0, 'al quitarla, sigue sin faltar nada');
+ok(Object.keys(await t.leerPatched(juego2)).length === 0, 'y el apunte se borra en vez de quedarse mintiendo');
+
+// Si el cliente se actualiza de verdad, el apunte deja de valer.
+await t.aplicarLaa(exe2, true, juego2, baseHash);
+const otroManifiesto = { files: [{ ...manifiesto.files[0], sha256: 'f'.repeat(64) }] };
+ok(
+  (await dm.plan(otroManifiesto)).length === 1,
+  'si el manifiesto cambia, el apunte caduca y el archivo se vuelve a pedir'
+);
+
+await rm(juego2, { recursive: true, force: true });
 await rm(dir, { recursive: true, force: true });
 await rm(juego, { recursive: true, force: true });
 

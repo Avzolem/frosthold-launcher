@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { mkdir, rename, rm, stat, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { leerPatched, type ApuntePatch } from './client-tweaks';
 import { pipeline } from 'node:stream/promises';
 import { Readable } from 'node:stream';
 import { EventEmitter } from 'node:events';
@@ -138,6 +139,11 @@ export class DownloadManager extends EventEmitter {
   async plan(manifest: Manifest, deep = false): Promise<ManifestFile[]> {
     if (!this.installDir) throw new Error('Falta elegir la carpeta del juego.');
     await this.loadRecord();
+    // Archivos que NOSOTROS modificamos a propósito —hoy solo el ejecutable,
+    // por la bandera de memoria ampliada—. Sin esto su huella deja de casar con
+    // el manifiesto, el verificador lo da por dañado, lo vuelve a bajar y al
+    // bajarlo borra la modificación. Activar, descargar, perderla, repetir.
+    const patched: Record<string, ApuntePatch> = await leerPatched(this.installDir);
     const missing: ManifestFile[] = [];
     let checked = 0;
     const total = manifest.files.length;
@@ -176,13 +182,19 @@ export class DownloadManager extends EventEmitter {
       const known = this.record[f.path];
       const unchanged = known && known.size === st.size && known.mtimeMs === st.mtimeMs;
 
-      if (!deep && unchanged && known.sha256 === f.sha256) {
+      // El apunte solo vale si se hizo SOBRE esta misma versión del archivo: si
+      // el manifiesto cambió, el cliente se actualizó de verdad y el apunte
+      // queda obsoleto.
+      const apunte = patched[f.path];
+      const esperado = apunte && apunte.base === f.sha256 ? apunte.sha256 : f.sha256;
+
+      if (!deep && unchanged && known.sha256 === esperado) {
         tick();
         continue;
       }
 
       const hash = await this.hashFile(abs);
-      if (hash !== f.sha256) {
+      if (hash !== esperado) {
         missing.push(f);
       } else {
         this.record[f.path] = { size: st.size, mtimeMs: st.mtimeMs, sha256: hash };
