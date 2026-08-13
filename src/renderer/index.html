@@ -13,12 +13,15 @@
     <!-- El arte va como elemento, no como fondo de CSS: así se puede anclar a
          la derecha y dejar libre el lado izquierdo, que es donde está el hueco
          oscuro de la ilustración y donde cae todo el contenido. -->
-    <img class="backdrop" src="assets/backdrop.jpg" alt="" aria-hidden="true" />
-    <div class="scrim" aria-hidden="true"></div>
+    <!-- La piel del launcher clásico: marco, arte y banda inferior en una sola
+         imagen, con el logotipo original retirado. Va estirada a la ventana, que
+         conserva su proporción para que el marco no se deforme. -->
+    <img class="skin" src="assets/skin.png" alt="" aria-hidden="true" />
+
+    <img class="logo" id="app-logo" src="assets/logo.png" alt="Frosthold" />
 
     <header class="titlebar">
       <div class="brand">
-        <img class="logo" id="app-logo" src="assets/logo.png" alt="Frosthold" />
         <span class="patch" id="realm-patch">3.3.5a</span>
         <span class="version" id="app-version"></span>
       </div>

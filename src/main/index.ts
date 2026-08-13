@@ -36,7 +36,7 @@ const CONFIG = JSON.parse(
 
 /** Tamaño de diseño de la ventana, en píxeles independientes de la pantalla. */
 const WIN_W = 1000;
-const WIN_H = 760;
+const WIN_H = 772;
 const MIN_W = 760;
 const MIN_H = 520;
 

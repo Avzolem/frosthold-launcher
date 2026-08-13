@@ -53,70 +53,72 @@ body {
   user-select: none;
 }
 
-/* ── El arte ────────────────────────────────────────────────────────────── */
+/* ── La piel ───────────────────────────────────────────────────────────── */
 
-.backdrop {
+/* La ventana mantiene la proporción de la imagen (804x621), así que estirarla
+   al 100 % no deforma el marco: solo lo escala. */
+.skin {
   position: fixed;
   inset: 0;
   width: 100%;
   height: 100%;
-  /* Anclado a la derecha: al estrechar la ventana se recorta por la izquierda,
-     que es el hueco oscuro, y el personaje nunca se pierde. */
-  object-fit: cover;
-  object-position: right center;
-  z-index: -2;
+  z-index: -1;
+  -webkit-user-drag: none;
 }
 
-/* Oscurece el lado izquierdo para que el texto se lea sobre cualquier recorte
-   del arte, y hunde los bordes superior e inferior bajo las bandas. */
-.scrim {
+/* El logotipo va donde estaba el de Blizzard: arriba, centrado y grande. Es lo
+   primero que se ve y lo que dice de quién es esto. */
+.logo {
   position: fixed;
-  inset: 0;
-  z-index: -1;
-  background:
-    linear-gradient(100deg, rgba(3, 8, 15, 0.97) 0%, rgba(3, 8, 15, 0.9) 34%, rgba(3, 8, 15, 0.35) 58%, rgba(3, 8, 15, 0.1) 100%),
-    linear-gradient(180deg, rgba(3, 8, 15, 0.85) 0%, transparent 16%, transparent 74%, rgba(3, 8, 15, 0.92) 100%);
+  top: 2.2%;
+  left: 50%;
+  translate: -50% 0;
+  width: 38%;
+  max-width: 380px;
+  filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.9));
+  -webkit-user-drag: none;
+  z-index: 2;
+  pointer-events: none;
 }
 
 /* ── Barra de título ────────────────────────────────────────────────────── */
 
+/* Sin fondo propio: el marco de la piel ya es la barra. Solo arrastra y aloja
+   los botones de ventana. */
 .titlebar {
-  flex: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 8px 10px 18px;
+  padding: 0 2.4% 0 3.4%;
   -webkit-app-region: drag;
+  z-index: 3;
 }
 
 .brand {
   display: flex;
   align-items: baseline;
-  gap: 12px;
-  min-width: 0;
-}
-
-.logo {
-  height: 46px;
-  width: auto;
-  /* El logotipo trae su propio resplandor; esto lo asienta sobre el arte. */
-  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.8));
-  -webkit-user-drag: none;
+  gap: 10px;
 }
 
 .patch {
-  font-size: 11px;
+  font-size: 10.5px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--gold);
-  opacity: 0.85;
+  opacity: 0.75;
+  text-shadow: 0 1px 3px #000;
 }
 
 .version {
-  font-size: 10.5px;
-  letter-spacing: 0.05em;
+  font-size: 10px;
   color: var(--meta);
   opacity: 0.7;
+  text-shadow: 0 1px 3px #000;
 }
 
 .window-buttons {
@@ -126,24 +128,24 @@ body {
 }
 
 .window-buttons button {
-  width: 38px;
-  height: 30px;
+  width: 34px;
+  height: 26px;
   border: 0;
-  border-radius: 5px;
+  border-radius: 4px;
   background: transparent;
   color: var(--meta);
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
   font-family: inherit;
 }
 
 .window-buttons button:hover {
-  background: rgba(125, 211, 252, 0.12);
+  background: rgba(125, 211, 252, 0.14);
   color: var(--white);
 }
 
 #btn-close:hover {
-  background: rgba(248, 113, 113, 0.2);
+  background: rgba(248, 113, 113, 0.22);
   color: #fecaca;
 }
 
@@ -204,46 +206,47 @@ body {
 
 /* ── Cuerpo ─────────────────────────────────────────────────────────────── */
 
+/* Todo el contenido vive DENTRO del marco de la piel, y a la derecha: el arte
+   del Rey Exánime ocupa la mitad izquierda, igual que en el original. Los
+   márgenes van en porcentaje porque la piel se escala con la ventana. */
 main {
-  flex: 1;
-  min-height: 0;
+  position: fixed;
+  top: 26%;
+  right: 3.2%;
+  bottom: 15.5%;
+  left: 45%;
   display: flex;
-  padding: 4px 18px 0;
   overflow: hidden;
+  z-index: 1;
 }
 
 .column {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  width: min(520px, 62%);
+  gap: 9px;
+  width: 100%;
   min-width: 0;
   overflow-y: auto;
-  padding-bottom: 12px;
+  padding-right: 4px;
 }
 
-/* Marco con esquinas doradas. Es la pieza que da el aire del launcher
-   original sin usar ni un solo recurso suyo: dos capas de degradado para el
-   relieve y cuatro escuadras dibujadas con bordes. */
+/* Los paneles ya no llevan marco propio: el de la piel es el marco. Aquí basta
+   un fondo apenas oscuro para que el texto se lea sobre el arte. */
 .frame {
   position: relative;
-  padding: 15px 17px;
-  border: 1px solid rgba(200, 164, 74, 0.22);
+  padding: 11px 13px;
+  border: 1px solid rgba(200, 164, 74, 0.16);
   border-radius: 3px;
-  background:
-    linear-gradient(180deg, rgba(16, 28, 43, 0.92), rgba(8, 15, 25, 0.94));
-  box-shadow:
-    inset 0 1px 0 rgba(246, 226, 160, 0.07),
-    0 6px 22px rgba(0, 0, 0, 0.5);
+  background: rgba(6, 13, 22, 0.72);
 }
 
 .frame::before,
 .frame::after {
   content: '';
   position: absolute;
-  width: 11px;
-  height: 11px;
-  border: 1px solid rgba(200, 164, 74, 0.55);
+  width: 9px;
+  height: 9px;
+  border: 1px solid rgba(200, 164, 74, 0.45);
   pointer-events: none;
 }
 
@@ -460,17 +463,21 @@ button.link:disabled {
   text-decoration: none;
 }
 
-/* ── Banda inferior ─────────────────────────────────────────────────────── */
+/* ── Banda inferior ────────────────────────────────────────────────────── */
 
+/* Encaja sobre la banda de piedra que ya trae la piel: sin fondo propio, sin
+   borde y en porcentajes, para que siga cuadrando al escalar la ventana. */
 .dock {
-  flex: none;
+  position: fixed;
+  left: 3.4%;
+  right: 3.4%;
+  bottom: 4%;
+  height: 15%;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  padding: 14px 18px 16px;
-  background: linear-gradient(180deg, transparent, rgba(3, 8, 15, 0.9) 40%);
-  border-top: 1px solid rgba(200, 164, 74, 0.14);
+  gap: 16px;
+  z-index: 2;
 }
 
 .dock-left {
@@ -478,24 +485,24 @@ button.link:disabled {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 7px;
 }
 
 .dock-right {
   flex: none;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
 }
 
 .progress {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .bar {
-  height: 9px;
+  height: 8px;
   background: rgba(3, 8, 15, 0.85);
   border: 1px solid var(--line);
   border-radius: 5px;
@@ -516,24 +523,26 @@ button.link:disabled {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  font-size: 11.5px;
-  color: var(--meta);
+  font-size: 11px;
+  color: var(--read);
   font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 3px #000;
 }
 
 .realmlist {
   display: flex;
   align-items: center;
-  gap: 9px;
-  font-size: 10px;
+  gap: 8px;
+  font-size: 9.5px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--meta);
+  text-shadow: 0 1px 3px #000;
 }
 
 .realmlist code {
   font-family: Consolas, 'Courier New', monospace;
-  font-size: 12px;
+  font-size: 11.5px;
   letter-spacing: 0;
   text-transform: none;
   color: var(--ice);
@@ -547,8 +556,8 @@ button.link:disabled {
    filo — la imagen mide 159x27 y el marco ocupa unos 8 px por lado. */
 button.stone {
   position: relative;
-  padding: 8px 12px;
-  min-height: 30px;
+  padding: 6px 11px;
+  min-height: 27px;
   border: 8px solid transparent;
   border-image: url('assets/btn.png') 8 fill / 8px / 0 stretch;
   background: transparent;
@@ -602,7 +611,7 @@ button.stone.action {
 .tools {
   display: grid;
   grid-template-columns: repeat(2, max-content);
-  gap: 7px;
+  gap: 5px;
   margin-top: 2px;
 }
 
