@@ -31,15 +31,18 @@
       </div>
     </header>
 
-    <div class="update" id="update" hidden>
-      <span class="update-text" id="update-text" role="status" aria-live="polite"></span>
-      <button id="btn-update" class="update-action" hidden>Reiniciar e instalar</button>
-    </div>
-
     <main>
       <!-- Columna izquierda: todo el contenido cabe en el hueco oscuro del
            arte, para no tapar al personaje. -->
       <div class="column">
+        <!-- Arriba del contenido, no del documento: como hijo suelto del body
+             caía sobre el marco y el logotipo, porque todo lo demás está
+             posicionado y él era el único en flujo. No se había visto nunca
+             porque hasta ahora no hubo ninguna actualización que anunciar. -->
+        <div class="update" id="update" hidden>
+          <span class="update-text" id="update-text" role="status" aria-live="polite"></span>
+        </div>
+
         <section class="frame realm">
           <div class="realm-state">
             <span class="dot" id="state-dot" data-state="unknown"></span>
@@ -132,6 +135,9 @@
         <div class="realmlist">
           <span>realmlist</span>
           <code id="realmlist-host">—</code>
+          <!-- Aparece solo cuando hay una versión descargada y lista. El aviso
+               de que existe lo da la barra de arriba; esto es la acción. -->
+          <button id="btn-update" class="stone update-now" hidden>Reiniciar e instalar</button>
         </div>
 
         <!-- Las utilidades, con el marco de hielo del launcher original.
@@ -141,11 +147,11 @@
           <button id="btn-open-dir" class="stone" disabled>Abrir la carpeta</button>
           <button id="btn-reset-gfx" class="stone" disabled>Restablecer gráficos</button>
           <button id="btn-verify" class="stone" disabled>Verificar el cliente</button>
+          <button id="btn-check-update" class="stone">Buscar actualizaciones</button>
         </div>
       </div>
 
       <div class="dock-right">
-        <button id="btn-check-update" class="stone">Buscar actualizaciones</button>
         <button id="btn-stop" class="stone" hidden>Detener</button>
         <!-- La acción que toque ahora mismo: elegir carpeta, comprobar o
              descargar. Desaparece cuando ya solo queda jugar. -->

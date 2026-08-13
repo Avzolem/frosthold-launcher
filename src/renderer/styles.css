@@ -96,18 +96,21 @@ body {
 
 /* Sin fondo propio: el marco de la piel ya es la barra. Solo arrastra y aloja
    los botones de ventana. */
+/* El raíl de metal de la piel va de y 18 a 42 sobre 621, o sea del 2,9 % al
+   6,8 %. La barra se ciñe a él: antes empezaba en 0 y los botones quedaban a
+   caballo del filo negro exterior, medio tapados y sin contraste. */
 .titlebar {
   position: fixed;
-  top: 0;
+  top: 2.4%;
   left: 0;
   right: 0;
-  height: 6%;
+  height: 4.6%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 2.4% 0 3.4%;
+  padding: 0 4% 0 4.4%;
   -webkit-app-region: drag;
-  z-index: 3;
+  z-index: 4;
 }
 
 .brand {
@@ -139,13 +142,14 @@ body {
 }
 
 .window-buttons button {
-  width: 34px;
-  height: 26px;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--meta);
+  width: 30px;
+  height: 22px;
+  border: 1px solid rgba(200, 164, 74, 0.28);
+  border-radius: 3px;
+  background: rgba(4, 10, 18, 0.65);
+  color: #b9cbdd;
   font-size: 12px;
+  line-height: 1;
   cursor: pointer;
   font-family: inherit;
 }
@@ -162,24 +166,22 @@ body {
 
 /* ── Aviso de versión nueva ─────────────────────────────────────────────── */
 
+/* Vive dentro de la columna, como un panel más. El botón para instalarla NO
+   está aquí: vive abajo, junto al realmlist, porque es una acción y las
+   acciones de este launcher están todas en la banda de piedra. */
 .update {
   flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 0 18px 6px;
-  padding: 9px 14px;
+  padding: 8px 12px;
   border: 1px solid var(--line);
-  border-radius: 6px;
-  background: rgba(11, 20, 32, 0.9);
-  font-size: 12.5px;
-  -webkit-app-region: no-drag;
+  border-radius: 3px;
+  background: rgba(6, 13, 22, 0.82);
+  font-size: 11.5px;
+  line-height: 1.45;
 }
 
 .update[data-phase='ready'] {
   border-color: var(--ice);
-  background: rgba(125, 211, 252, 0.12);
+  background: rgba(125, 211, 252, 0.14);
 }
 
 .update[data-phase='error'] .update-text {
@@ -190,29 +192,12 @@ body {
   color: var(--read);
 }
 
-.update-action {
-  flex: none;
-  padding: 6px 13px;
-  border-radius: 5px;
-  border: 1px solid var(--ice);
-  background: transparent;
+/* El botón de instalar se distingue del resto de la piedra por el filo de
+   hielo: es lo único de la banda que caduca. */
+button.stone.update-now {
+  margin-left: 10px;
   color: var(--ice);
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.update-action:hover {
-  background: var(--ice);
-  color: var(--ink);
-}
-
-.update-action:disabled {
-  opacity: 0.45;
-  cursor: default;
-  background: transparent;
-  color: var(--ice);
+  border-image-source: url('assets/btn-hover.png');
 }
 
 /* ── Cuerpo ─────────────────────────────────────────────────────────────── */
@@ -628,7 +613,7 @@ button.stone.action {
    de cada una, que es lo que le da el aire ordenado del original. */
 .tools {
   display: grid;
-  grid-template-columns: repeat(3, max-content);
+  grid-template-columns: repeat(4, max-content);
   gap: 5px;
   margin-top: 2px;
 }

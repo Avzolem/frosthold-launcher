@@ -1,6 +1,6 @@
 {
   "name": "frosthold-launcher",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Launcher de Frosthold",
   "main": "dist/main/index.js",
   "license": "UNLICENSED",
