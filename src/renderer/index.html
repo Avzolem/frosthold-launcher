@@ -141,11 +141,11 @@
           <button id="btn-open-dir" class="stone" disabled>Abrir la carpeta</button>
           <button id="btn-reset-gfx" class="stone" disabled>Restablecer gráficos</button>
           <button id="btn-verify" class="stone" disabled>Verificar el cliente</button>
-          <button id="btn-check-update" class="stone">Buscar actualizaciones</button>
         </div>
       </div>
 
       <div class="dock-right">
+        <button id="btn-check-update" class="stone">Buscar actualizaciones</button>
         <button id="btn-stop" class="stone" hidden>Detener</button>
         <!-- La acción que toque ahora mismo: elegir carpeta, comprobar o
              descargar. Desaparece cuando ya solo queda jugar. -->
@@ -155,9 +155,10 @@
         <!-- El botón grande es SIEMPRE «PLAY», gris mientras no se pueda
              jugar. Es lo que hace el launcher original mientras parchea, y es
              lo que hace que la ventana se lea de un vistazo. -->
-        <button id="btn-play" class="play" disabled aria-label="Jugar"></button>
       </div>
     </footer>
+
+    <button id="btn-play" class="play" disabled aria-label="Jugar"></button>
 
     <script src="app.js"></script>
   </body>

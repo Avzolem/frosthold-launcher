@@ -1,3 +1,14 @@
+/* La Cinzel del sitio, el MISMO archivo que sirve la web: así los botones del
+   launcher y los del encabezado de la página son la misma letra y no dos
+   parecidas. Va empaquetada porque la política de contenido no deja pedir
+   fuentes fuera, y porque el launcher tiene que verse igual sin conexión. */
+@font-face {
+  font-family: 'Cinzel';
+  src: url('assets/cinzel.woff2') format('woff2');
+  font-weight: 400 700;
+  font-display: block;
+}
+
 :root {
   --ink: #050b14;
   --slab: #0b1420;
@@ -20,7 +31,7 @@
 
   /* Serif del sistema. No hay fuentes externas a propósito: el launcher tiene
      que verse igual sin conexión, y la política de contenido no deja pedirlas. */
-  --serif: 'Trajan Pro', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
+  --serif: 'Cinzel', 'Palatino Linotype', Georgia, serif;
 }
 
 * {
@@ -73,8 +84,8 @@ body {
   top: 2.2%;
   left: 50%;
   translate: -50% 0;
-  width: 38%;
-  max-width: 380px;
+  width: 28.5%;
+  max-width: 286px;
   filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.9));
   -webkit-user-drag: none;
   z-index: 2;
@@ -220,14 +231,16 @@ main {
   z-index: 1;
 }
 
+/* Sin barra de desplazamiento: si el contenido no cabe es que hay que
+   apretarlo, no darle un carril lateral que ensucia el marco. */
 .column {
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 8px;
+  overflow: hidden;
   width: 100%;
   min-width: 0;
-  overflow-y: auto;
-  padding-right: 4px;
+  padding-right: 0;
 }
 
 /* Los paneles ya no llevan marco propio: el de la piel es el marco. Aquí basta
@@ -269,9 +282,9 @@ main {
 .realm-state {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 9px;
   color: var(--white);
-  font-size: 15px;
+  font-size: 13px;
 }
 
 .realm-state-text {
@@ -308,9 +321,9 @@ main {
 .metrics {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin: 14px 0 0;
-  padding-top: 13px;
+  gap: 8px;
+  margin: 9px 0 0;
+  padding-top: 9px;
   border-top: 1px solid rgba(200, 164, 74, 0.15);
 }
 
@@ -326,8 +339,8 @@ main {
 }
 
 .metrics dd {
-  margin: 3px 0 0;
-  font-size: 21px;
+  margin: 2px 0 0;
+  font-size: 15px;
   font-weight: 700;
   color: var(--gold);
   font-variant-numeric: tabular-nums;
@@ -373,8 +386,8 @@ main {
 }
 
 .note {
-  font-size: 12.5px;
-  line-height: 1.5;
+  font-size: 11.5px;
+  line-height: 1.45;
   color: var(--meta);
   min-height: 19px;
   margin: 11px 0 0;
@@ -470,7 +483,8 @@ button.link:disabled {
 .dock {
   position: fixed;
   left: 3.4%;
-  right: 3.4%;
+  /* Se corta antes del hueco del PLAY, que ahora se coloca solo. */
+  right: 21%;
   bottom: 4%;
   height: 15%;
   display: flex;
@@ -488,11 +502,14 @@ button.link:disabled {
   gap: 7px;
 }
 
+/* «Buscar actualizaciones» y la acción del momento van pegadas al PLAY, como
+   el racimo de botones que el launcher original pone a su izquierda. */
 .dock-right {
   flex: none;
   display: flex;
-  align-items: center;
-  gap: 9px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
 }
 
 .progress {
@@ -562,10 +579,11 @@ button.stone {
   border-image: url('assets/btn.png') 8 fill / 8px / 0 stretch;
   background: transparent;
   color: #cfe0f2;
-  font-family: inherit;
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  font-family: var(--serif);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-caps: small-caps;
+  letter-spacing: 0.04em;
   white-space: nowrap;
   cursor: pointer;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
@@ -599,8 +617,8 @@ button.stone:disabled {
 /* La acción del momento: pesa más que las utilidades, sin llegar a competir
    con el botón grande. */
 button.stone.action {
-  padding: 12px 22px;
-  font-size: 13.5px;
+  padding: 8px 16px;
+  font-size: 13px;
   color: var(--gold-lite);
 }
 
@@ -610,7 +628,7 @@ button.stone.action {
    de cada una, que es lo que le da el aire ordenado del original. */
 .tools {
   display: grid;
-  grid-template-columns: repeat(2, max-content);
+  grid-template-columns: repeat(3, max-content);
   gap: 5px;
   margin-top: 2px;
 }
@@ -620,9 +638,15 @@ button.stone.action {
 /* Es el del launcher original, con sus cuatro estados. No lleva texto propio:
    «PLAY» viene dentro de la imagen, con su dorado y su bisel. */
 .play {
-  width: 156px;
-  height: 89px;
-  flex: none;
+  /* Encaja en el hueco de la piel, medido sobre la imagen: x 646..790 e
+     y 518..600 de 804x621. En porcentaje, para que siga cuadrando al escalar
+     la ventana. El arte del botón tiene la misma proporción que el hueco. */
+  position: fixed;
+  left: 80.35%;
+  top: 83.4%;
+  width: 17.9%;
+  height: 13.2%;
+  z-index: 3;
   border: 0;
   padding: 0;
   background: url('assets/play.png') center / 100% 100% no-repeat;
@@ -694,9 +718,9 @@ button.stone.action {
 
 .tweak {
   display: flex;
-  gap: 11px;
+  gap: 9px;
   align-items: flex-start;
-  padding: 9px 0;
+  padding: 7px 0;
   cursor: pointer;
   border-top: 1px solid rgba(200, 164, 74, 0.11);
 }
@@ -717,16 +741,16 @@ button.stone.action {
 
 .tweak strong {
   display: block;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--white);
 }
 
 .tweak small {
   display: block;
-  margin-top: 3px;
-  font-size: 11.5px;
-  line-height: 1.5;
+  margin-top: 2px;
+  font-size: 10.5px;
+  line-height: 1.4;
   color: var(--meta);
 }
 
